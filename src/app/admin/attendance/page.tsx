@@ -1,8 +1,10 @@
-import { AttendanceEditor, MarkAbsentButton } from "@/components/admin-forms";
+import { AttendanceEditor, MarkAbsentButton, WorkplaceForm } from "@/components/admin-forms";
+import { PunchLocation } from "@/components/gps-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Field, FilterBar, PageHeader, inputClass, td, th } from "@/components/ui";
 import { ATTENDANCE_STATUSES, DEPARTMENTS } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
+import { WORKPLACE_ID } from "@/lib/geo";
 import { dateKey, fullName, isWeekday, matchesQuery, queryValue, todayKey } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -20,10 +22,13 @@ export default async function AdminAttendancePage({
   const department = queryValue(params.department);
   const status = queryValue(params.status);
   const q = queryValue(params.q);
-  const employees = await prisma.user.findMany({
-    where: { role: "EMPLOYEE", ...(department ? { department } : {}) },
-    orderBy: { firstName: "asc" },
-  });
+  const [employees, workplace] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE", ...(department ? { department } : {}) },
+      orderBy: { firstName: "asc" },
+    }),
+    prisma.workplace.findUnique({ where: { id: WORKPLACE_ID } }),
+  ]);
   const records = await prisma.attendance.findMany({ where: { date: new Date(`${safeDate}T00:00:00.000Z`) } });
   const byUser = new Map(records.map((record) => [record.userId, record]));
   const rows = employees
@@ -39,9 +44,10 @@ export default async function AdminAttendancePage({
       <PageHeader
         eyebrow="Time"
         title="Attendance"
-        description="Review a day, correct a record, or mark everyone still blank as absent."
+        description="Set the office GPS radius, then review each employee’s check-in and check-out location."
         action={isWeekday(safeDate) ? <MarkAbsentButton date={safeDate} /> : null}
       />
+      <WorkplaceForm workplace={workplace} />
       <FilterBar clearHref="/admin/attendance">
         <Field label="Date">
           <input className={inputClass} type="date" name="date" defaultValue={safeDate} />
@@ -81,8 +87,12 @@ export default async function AdminAttendancePage({
                   <p className="font-medium">{fullName(employee)}</p>
                   <p className="text-mist">{employee.employeeCode} · {employee.department}</p>
                 </td>
-                <td className={td}>{record?.checkIn ?? "—"}</td>
-                <td className={td}>{record?.checkOut ?? "—"}</td>
+                <td className={td}>
+                  <PunchLocation time={record?.checkIn ?? null} latitude={record?.checkInLat ?? null} longitude={record?.checkInLng ?? null} accuracy={record?.checkInAccuracy ?? null} />
+                </td>
+                <td className={td}>
+                  <PunchLocation time={record?.checkOut ?? null} latitude={record?.checkOutLat ?? null} longitude={record?.checkOutLng ?? null} accuracy={record?.checkOutAccuracy ?? null} />
+                </td>
                 <td className={td}><StatusBadge value={record?.status ?? "Not marked"} /></td>
                 <td className={td}>
                   <AttendanceEditor

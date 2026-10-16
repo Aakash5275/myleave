@@ -6,34 +6,81 @@ import { ActionForm } from "@/components/action-form";
 import { Modal } from "@/components/modal";
 import { btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
 import { DOC_TYPES, HR_CATEGORIES, LEAVE_TYPES, PRIORITIES } from "@/lib/constants";
+import { GpsLink } from "@/components/gps-link";
 import { clock, applyLeave, changePassword, createDocumentRequest, createHrRequest, updateProfile } from "@/server/employee-actions";
+
+type PunchLocation = { latitude: number; longitude: number } | null;
 
 export function AttendanceClock({
   dateLabel,
   checkIn,
   checkOut,
+  checkInLocation,
+  checkOutLocation,
   status,
+  office,
+  remoteClock,
 }: {
   dateLabel: string;
   checkIn: string | null;
   checkOut: string | null;
+  checkInLocation: PunchLocation;
+  checkOutLocation: PunchLocation;
   status: string | null;
+  office: { name: string; latitude: number; longitude: number; radiusM: number } | null;
+  remoteClock: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [locating, setLocating] = useState<"in" | "out" | null>(null);
   const [pending, startTransition] = useTransition();
 
   function punch(kind: "in" | "out") {
-    startTransition(async () => {
-      const result = await clock(kind);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      setError("");
-      router.refresh();
-    });
+    setError("");
+    if (!remoteClock && !office) {
+      setError("HR has not set the office location yet.");
+      return;
+    }
+    if (!navigator.geolocation) {
+      setError("This browser cannot read your GPS location.");
+      return;
+    }
+    setLocating(kind);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(null);
+        const { latitude, longitude, accuracy } = position.coords;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(accuracy)) {
+          setError("The GPS reading was incomplete. Try again.");
+          return;
+        }
+        startTransition(async () => {
+          const result = await clock(kind, { latitude, longitude, accuracy });
+          if (result.error) {
+            setError(result.error);
+            return;
+          }
+          setError("");
+          router.refresh();
+        });
+      },
+      (failure) => {
+        setLocating(null);
+        if (failure.code === failure.PERMISSION_DENIED) {
+          setError("Allow location access to check in or out.");
+          return;
+        }
+        if (failure.code === failure.POSITION_UNAVAILABLE) {
+          setError("GPS is unavailable. Turn on location and try again.");
+          return;
+        }
+        setError("Finding your location took too long. Try again outdoors.");
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
   }
+
+  const busy = pending || locating !== null;
 
   return (
     <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
@@ -43,22 +90,38 @@ export function AttendanceClock({
         <div>
           <dt className="text-mist">Check in</dt>
           <dd className="font-medium">{checkIn ?? "—"}</dd>
+          {checkInLocation ? (
+            <dd className="mt-1">
+              <GpsLink latitude={checkInLocation.latitude} longitude={checkInLocation.longitude} />
+            </dd>
+          ) : null}
         </div>
         <div>
           <dt className="text-mist">Check out</dt>
           <dd className="font-medium">{checkOut ?? "—"}</dd>
+          {checkOutLocation ? (
+            <dd className="mt-1">
+              <GpsLink latitude={checkOutLocation.latitude} longitude={checkOutLocation.longitude} />
+            </dd>
+          ) : null}
         </div>
       </dl>
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button className={btnPrimary} type="button" disabled={pending || Boolean(checkIn)} onClick={() => punch("in")}>
-          Check in
+        <button className={btnPrimary} type="button" disabled={busy || (!remoteClock && !office) || Boolean(checkIn)} onClick={() => punch("in")}>
+          {locating === "in" ? "Finding GPS…" : "Check in"}
         </button>
-        <button className={btnSecondary} type="button" disabled={pending || !checkIn || Boolean(checkOut)} onClick={() => punch("out")}>
-          Check out
+        <button className={btnSecondary} type="button" disabled={busy || (!remoteClock && !office) || !checkIn || Boolean(checkOut)} onClick={() => punch("out")}>
+          {locating === "out" ? "Finding GPS…" : "Check out"}
         </button>
       </div>
-      <p className="mt-3 text-xs text-mist">Check-in after 09:30 is marked late. Times use India Standard Time.</p>
+      <p className="mt-3 text-xs text-mist">
+        {remoteClock
+          ? "You can check in from anywhere. GPS and the time are still saved. Check-in after 09:30 is marked late. Times use India Standard Time."
+          : office
+            ? `GPS is required. You must be within ${office.radiusM} m of ${office.name}. Check-in after 09:30 is marked late. Times use India Standard Time.`
+            : "GPS check-in is waiting for HR to save the office location."}
+      </p>
     </div>
   );
 }

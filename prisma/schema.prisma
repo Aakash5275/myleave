@@ -25,6 +25,7 @@ model User {
   emergencyName  String   @default("")
   emergencyPhone String   @default("")
   status         String   @default("Active")
+  remoteClock    Boolean  @default(false)
   salary         Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -55,17 +56,38 @@ model LeaveBalance {
 }
 
 model Attendance {
-  id       String   @id @default(cuid())
-  userId   String
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date     DateTime
-  checkIn  String?
-  checkOut String?
-  status   String
-  notes    String   @default("")
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime
+  checkIn          String?
+  checkOut         String?
+  checkInLat       Float?
+  checkInLng       Float?
+  checkInAccuracy  Float?
+  checkOutLat      Float?
+  checkOutLng      Float?
+  checkOutAccuracy Float?
+  status           String
+  notes            String   @default("")
 
   @@unique([userId, date])
   @@index([date])
+}
+
+model Workplace {
+  id        String   @id @default("default")
+  name      String   @default("Office")
+  latitude  Float
+  longitude Float
+  radiusM   Int      @default(150)
+  updatedAt DateTime @updatedAt
+}
+
+model OrgSetting {
+  id            String   @id @default("default")
+  clockAnywhere Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
 }
 
 model LeaveRequest {

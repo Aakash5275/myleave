@@ -1,3 +1,4 @@
+import { PunchLocation } from "@/components/gps-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, Stat, inputClass, td, th } from "@/components/ui";
 import { ATTENDANCE_STATUSES } from "@/lib/constants";
@@ -41,7 +42,7 @@ export default async function AttendancePage({
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Time" title="Attendance" description="Your month at a glance. Check in from the dashboard on working days." />
+      <PageHeader eyebrow="Time" title="Attendance" description="Your month at a glance. GPS check-in and check-out are on the dashboard." />
       <FilterBar clearHref="/employee/attendance">
         <Field label="Month">
           <input className={inputClass} type="month" name="month" defaultValue={`${range.year}-${String(range.month).padStart(2, "0")}`} />
@@ -84,7 +85,7 @@ export default async function AttendancePage({
       </div>
       {records.length ? (
         <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr>
                 <th className={th}>Date</th>
@@ -98,8 +99,12 @@ export default async function AttendancePage({
               {records.map((record) => (
                 <tr key={record.id}>
                   <td className={td}>{formatDate(record.date)}</td>
-                  <td className={td}>{record.checkIn ?? "—"}</td>
-                  <td className={td}>{record.checkOut ?? "—"}</td>
+                  <td className={td}>
+                    <PunchLocation time={record.checkIn} latitude={record.checkInLat} longitude={record.checkInLng} accuracy={record.checkInAccuracy} />
+                  </td>
+                  <td className={td}>
+                    <PunchLocation time={record.checkOut} latitude={record.checkOutLat} longitude={record.checkOutLng} accuracy={record.checkOutAccuracy} />
+                  </td>
                   <td className={td}><StatusBadge value={record.status} /></td>
                   <td className={td}>{record.notes || "—"}</td>
                 </tr>

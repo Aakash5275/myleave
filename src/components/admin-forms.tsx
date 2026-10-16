@@ -7,6 +7,8 @@ import { Modal } from "@/components/modal";
 import { btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
 import { ATTENDANCE_STATUSES, DEPARTMENTS, EMPLOYEE_STATUSES } from "@/lib/constants";
 import { formatMoney } from "@/lib/format";
+import { GpsLink } from "@/components/gps-link";
+import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/geo";
 import {
   createEmployee,
   deleteAnnouncement,
@@ -14,6 +16,7 @@ import {
   resetEmployeePassword,
   saveAnnouncement,
   savePayslip,
+  saveWorkplace,
   toggleAnnouncementPin,
   updateAttendance,
   updateEmployee,
@@ -87,6 +90,7 @@ export function EmployeeEditor({
     emergencyName: string;
     emergencyPhone: string;
     status: string;
+    remoteClock: boolean;
     salary: number;
   };
 }) {
@@ -134,6 +138,10 @@ export function EmployeeEditor({
               <input className={inputClass} type="number" name="salary" min={0} defaultValue={employee.salary} required />
             </Field>
           </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input className="mt-1" type="checkbox" name="remoteClock" defaultChecked={employee.remoteClock} />
+            <span>Allow check-in and check-out from anywhere. GPS and the time are still saved.</span>
+          </label>
           <Field label="Phone">
             <input className={inputClass} name="phone" defaultValue={employee.phone} />
           </Field>
@@ -161,6 +169,89 @@ export function EmployeeEditor({
           <Field label="Confirm password">
             <input className={inputClass} name="confirm" type="text" required />
           </Field>
+        </ActionForm>
+      </div>
+    </div>
+  );
+}
+
+export function WorkplaceForm({
+  workplace,
+}: {
+  workplace: { name: string; latitude: number; longitude: number; radiusM: number } | null;
+}) {
+  const [latitude, setLatitude] = useState(workplace ? String(workplace.latitude) : "");
+  const [longitude, setLongitude] = useState(workplace ? String(workplace.longitude) : "");
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  function useMyLocation() {
+    setLocationError("");
+    if (!navigator.geolocation) {
+      setLocationError("This browser cannot read your GPS location.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        setLatitude(position.coords.latitude.toFixed(6));
+        setLongitude(position.coords.longitude.toFixed(6));
+      },
+      () => {
+        setLocating(false);
+        setLocationError("Allow location access, then try again at the office.");
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <h2 className="text-base font-semibold">Office location</h2>
+      <p className="mt-1 text-sm text-mist">
+        Employees can check in and out only when their GPS is inside this radius.
+        {workplace ? (
+          <>
+            {" "}
+            Current site: <GpsLink latitude={workplace.latitude} longitude={workplace.longitude} />.
+          </>
+        ) : null}
+      </p>
+      <div className="mt-4">
+        <ActionForm
+          action={saveWorkplace}
+          submitLabel="Save office"
+          secondary={
+            <button className={btnSecondary} type="button" disabled={locating} onClick={useMyLocation}>
+              {locating ? "Finding GPS…" : "Use my location"}
+            </button>
+          }
+        >
+          <Field label="Name">
+            <input className={inputClass} name="name" defaultValue={workplace?.name ?? "Office"} required minLength={2} />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Latitude">
+              <input className={inputClass} name="latitude" value={latitude} onChange={(event) => setLatitude(event.target.value)} required inputMode="decimal" />
+            </Field>
+            <Field label="Longitude">
+              <input className={inputClass} name="longitude" value={longitude} onChange={(event) => setLongitude(event.target.value)} required inputMode="decimal" />
+            </Field>
+            <Field label="Radius (metres)">
+              <input
+                className={inputClass}
+                name="radiusM"
+                type="number"
+                min={MIN_RADIUS_M}
+                max={MAX_RADIUS_M}
+                step={1}
+                defaultValue={workplace?.radiusM ?? 150}
+                required
+              />
+            </Field>
+          </div>
+          {locationError ? <p className="text-sm text-rose-600">{locationError}</p> : null}
         </ActionForm>
       </div>
     </div>

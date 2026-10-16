@@ -19,32 +19,77 @@ import {
   cleanText,
   validPassword,
 } from "@/lib/validate";
+import { distanceMeters, ORG_SETTING_ID, parseGps, WORKPLACE_ID } from "@/lib/geo";
 import { availableDays, ensureBalances } from "@/server/leave";
 import { notifyAdmins, refresh } from "@/server/notify";
 
-export async function clock(kind: "in" | "out") {
+async function requireAtWorkplace(location: unknown, remoteClock: boolean) {
+  const fix = parseGps(location);
+  if (!fix) return { error: "A GPS location is required to check in or out." };
+  if (remoteClock) return { fix };
+  const workplace = await prisma.workplace.findUnique({ where: { id: WORKPLACE_ID } });
+  if (!workplace) return { error: "HR has not set the office location yet." };
+  if (fix.accuracy > workplace.radiusM) {
+    return {
+      error: `GPS is only accurate to ${Math.round(fix.accuracy)} m. Wait outdoors until it is within ${workplace.radiusM} m, then try again.`,
+    };
+  }
+  const distance = distanceMeters(fix.latitude, fix.longitude, workplace.latitude, workplace.longitude);
+  if (distance > workplace.radiusM) {
+    return {
+      error: `You are about ${Math.round(distance)} m from ${workplace.name}. You need to be within ${workplace.radiusM} m.`,
+    };
+  }
+  return { fix };
+}
+
+export async function clock(kind: "in" | "out", location: unknown) {
   const user = await requireUser("EMPLOYEE");
+  const policy = await prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } });
+  const gate = await requireAtWorkplace(location, user.remoteClock || Boolean(policy?.clockAnywhere));
+  if ("error" in gate) return { error: gate.error };
   const key = todayKey();
   const date = parseKey(key);
   const existing = await prisma.attendance.findUnique({
     where: { userId_date: { userId: user.id, date } },
   });
   const time = nowTime();
+  const fix = gate.fix;
 
   if (kind === "in") {
     if (existing?.checkIn) return { error: "You have already checked in today." };
     const status = time > "09:30" ? "Late" : "Present";
     await prisma.attendance.upsert({
       where: { userId_date: { userId: user.id, date } },
-      create: { userId: user.id, date, checkIn: time, status },
-      update: { checkIn: time, status, notes: existing?.notes === "Approved leave" ? "Worked during approved leave" : existing?.notes ?? "" },
+      create: {
+        userId: user.id,
+        date,
+        checkIn: time,
+        status,
+        checkInLat: fix.latitude,
+        checkInLng: fix.longitude,
+        checkInAccuracy: fix.accuracy,
+      },
+      update: {
+        checkIn: time,
+        status,
+        notes: existing?.notes === "Approved leave" ? "Worked during approved leave" : existing?.notes ?? "",
+        checkInLat: fix.latitude,
+        checkInLng: fix.longitude,
+        checkInAccuracy: fix.accuracy,
+      },
     });
   } else {
     if (!existing?.checkIn) return { error: "Check in before checking out." };
     if (existing.checkOut) return { error: "You have already checked out today." };
     await prisma.attendance.update({
       where: { id: existing.id },
-      data: { checkOut: time },
+      data: {
+        checkOut: time,
+        checkOutLat: fix.latitude,
+        checkOutLng: fix.longitude,
+        checkOutAccuracy: fix.accuracy,
+      },
     });
   }
 

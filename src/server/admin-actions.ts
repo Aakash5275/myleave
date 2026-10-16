@@ -10,6 +10,7 @@ import {
   REQUEST_STATUSES,
   isOneOf,
 } from "@/lib/constants";
+import { MAX_RADIUS_M, MIN_RADIUS_M, ORG_SETTING_ID, parseCoordinate, WORKPLACE_ID } from "@/lib/geo";
 import { formatDate, formatMonth, fullName, isWeekday, parseKey } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import {
@@ -106,6 +107,7 @@ export async function updateEmployee(formData: FormData) {
   const emergencyName = cleanText(formData.get("emergencyName"), 80);
   const emergencyPhone = cleanPhone(formData.get("emergencyPhone"));
   const status = cleanText(formData.get("status"), 20);
+  const remoteClock = formData.get("remoteClock") === "on";
   const salary = parseAmount(formData.get("salary"));
   const employee = await prisma.user.findFirst({ where: { id, role: "EMPLOYEE" } });
   if (!employee) return { error: "Employee not found." };
@@ -142,6 +144,7 @@ export async function updateEmployee(formData: FormData) {
         emergencyName,
         emergencyPhone,
         status,
+        remoteClock,
         salary,
       },
     });
@@ -173,6 +176,39 @@ export async function resetEmployeePassword(formData: FormData) {
     message: "An admin reset your password. Use the new temporary password to sign in.",
     kind: "account",
     href: "/employee/profile",
+  });
+  refresh();
+  return {};
+}
+
+export async function setClockAnywhere(enabled: boolean) {
+  await requireUser("ADMIN");
+  if (typeof enabled !== "boolean") return { error: "Choose on or off." };
+  await prisma.orgSetting.upsert({
+    where: { id: ORG_SETTING_ID },
+    create: { id: ORG_SETTING_ID, clockAnywhere: enabled },
+    update: { clockAnywhere: enabled },
+  });
+  refresh();
+  return {};
+}
+
+export async function saveWorkplace(formData: FormData) {
+  await requireUser("ADMIN");
+  const name = cleanText(formData.get("name"), 80);
+  const latitude = parseCoordinate(formData.get("latitude"), -90, 90);
+  const longitude = parseCoordinate(formData.get("longitude"), -180, 180);
+  const radiusM = Number(String(formData.get("radiusM") ?? "").trim());
+  if (name.length < 2) return { error: "Name the office." };
+  if (latitude === null || longitude === null) return { error: "Enter a valid latitude and longitude." };
+  if (!Number.isInteger(radiusM) || radiusM < MIN_RADIUS_M || radiusM > MAX_RADIUS_M) {
+    return { error: `Radius must be a whole number from ${MIN_RADIUS_M} to ${MAX_RADIUS_M} metres.` };
+  }
+
+  await prisma.workplace.upsert({
+    where: { id: WORKPLACE_ID },
+    create: { id: WORKPLACE_ID, name, latitude, longitude, radiusM },
+    update: { name, latitude, longitude, radiusM },
   });
   refresh();
   return {};

@@ -46,6 +46,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           emergencyName: employee.emergencyName,
           emergencyPhone: employee.emergencyPhone,
           status: employee.status,
+          remoteClock: employee.remoteClock,
           salary: employee.salary,
         }}
       />

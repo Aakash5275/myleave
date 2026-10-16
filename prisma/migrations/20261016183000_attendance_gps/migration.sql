@@ -1,0 +1,19 @@
+-- AlterTable
+ALTER TABLE "Attendance" ADD COLUMN "checkInLat" DOUBLE PRECISION,
+ADD COLUMN "checkInLng" DOUBLE PRECISION,
+ADD COLUMN "checkInAccuracy" DOUBLE PRECISION,
+ADD COLUMN "checkOutLat" DOUBLE PRECISION,
+ADD COLUMN "checkOutLng" DOUBLE PRECISION,
+ADD COLUMN "checkOutAccuracy" DOUBLE PRECISION;
+
+-- CreateTable
+CREATE TABLE "Workplace" (
+    "id" TEXT NOT NULL DEFAULT 'default',
+    "name" TEXT NOT NULL DEFAULT 'Office',
+    "latitude" DOUBLE PRECISION NOT NULL,
+    "longitude" DOUBLE PRECISION NOT NULL,
+    "radiusM" INTEGER NOT NULL DEFAULT 150,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Workplace_pkey" PRIMARY KEY ("id")
+);

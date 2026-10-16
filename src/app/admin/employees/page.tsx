@@ -71,7 +71,10 @@ export default async function EmployeesPage({
                   <td className={td}>{employee.jobTitle}</td>
                   <td className={td}>{employee.department}</td>
                   <td className={td}>{formatDate(employee.hireDate)}</td>
-                  <td className={td}><StatusBadge value={employee.status} /></td>
+                  <td className={td}>
+                    <StatusBadge value={employee.status} />
+                    {employee.remoteClock ? <p className="mt-1 text-xs text-mist">Anywhere</p> : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

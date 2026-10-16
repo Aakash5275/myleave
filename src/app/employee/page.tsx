@@ -3,6 +3,7 @@ import { AttendanceClock } from "@/components/employee-forms";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader, Panel, Stat, Workflow } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { ORG_SETTING_ID, WORKPLACE_ID } from "@/lib/geo";
 import { formatDate, formatMoney, formatMonth, fullName, monthKeys, todayKey } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -13,7 +14,7 @@ export default async function EmployeeDashboard() {
   const today = todayKey();
   const month = monthKeys(today.slice(0, 7))!;
   const year = Number(today.slice(0, 4));
-  const [balances, monthAttendance, todayAttendance, leaves, pendingLeave, openHr, openDocs, announcement, payslip] =
+  const [balances, monthAttendance, todayAttendance, leaves, pendingLeave, openHr, openDocs, announcement, payslip, office, policy] =
     await Promise.all([
       prisma.leaveBalance.findMany({ where: { userId: user.id, year }, orderBy: { type: "asc" } }),
       prisma.attendance.findMany({
@@ -26,6 +27,8 @@ export default async function EmployeeDashboard() {
       prisma.documentRequest.count({ where: { userId: user.id, status: { in: ["Pending", "In Progress"] } } }),
       prisma.announcement.findFirst({ orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], include: { author: true } }),
       prisma.payslip.findFirst({ where: { userId: user.id, status: "Issued" }, orderBy: [{ year: "desc" }, { month: "desc" }] }),
+      prisma.workplace.findUnique({ where: { id: WORKPLACE_ID } }),
+      prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } }),
     ]);
 
   const presentDays = monthAttendance.filter((row) => ["Present", "Late", "Half Day"].includes(row.status)).length;
@@ -50,7 +53,19 @@ export default async function EmployeeDashboard() {
           dateLabel={formatDate(`${today}T00:00:00.000Z`)}
           checkIn={todayAttendance?.checkIn ?? null}
           checkOut={todayAttendance?.checkOut ?? null}
+          checkInLocation={
+            todayAttendance?.checkInLat != null && todayAttendance.checkInLng != null
+              ? { latitude: todayAttendance.checkInLat, longitude: todayAttendance.checkInLng }
+              : null
+          }
+          checkOutLocation={
+            todayAttendance?.checkOutLat != null && todayAttendance.checkOutLng != null
+              ? { latitude: todayAttendance.checkOutLat, longitude: todayAttendance.checkOutLng }
+              : null
+          }
           status={todayAttendance?.status ?? null}
+          office={office}
+          remoteClock={user.remoteClock || Boolean(policy?.clockAnywhere)}
         />
         <Panel className="lg:col-span-2" title="Leave balances" description={`${year} allowance. Pending requests are not deducted until approved.`}>
           <div className="grid gap-3 sm:grid-cols-2">

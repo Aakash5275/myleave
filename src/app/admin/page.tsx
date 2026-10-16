@@ -1,22 +1,24 @@
 import Link from "next/link";
+import { LiveRoster } from "@/components/live-roster";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader, Panel, Stat, Workflow } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatMoney, fullName, todayKey } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { loadTodayRoster } from "@/server/roster";
 
 export const metadata = { title: "Admin dashboard" };
 
 export default async function AdminDashboard() {
   await requireUser("ADMIN");
   const today = todayKey();
-  const [employees, pendingLeave, openHr, pendingDocs, attendance, leaves, tickets, documents, payslips] =
+  const [employees, pendingLeave, openHr, pendingDocs, roster, leaves, tickets, documents, payslips] =
     await Promise.all([
       prisma.user.count({ where: { role: "EMPLOYEE", status: "Active" } }),
       prisma.leaveRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
       prisma.hrRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
       prisma.documentRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
-      prisma.attendance.findMany({ where: { date: new Date(`${today}T00:00:00.000Z`) } }),
+      loadTodayRoster(),
       prisma.leaveRequest.findMany({
         where: { status: { in: ["Pending", "In Progress"] } },
         include: { user: true },
@@ -37,7 +39,6 @@ export default async function AdminDashboard() {
       }),
       prisma.payslip.findMany({ where: { status: "Issued", year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) } }),
     ]);
-  const present = attendance.filter((row) => ["Present", "Late", "Half Day"].includes(row.status)).length;
   const payroll = payslips.reduce((sum, slip) => sum + slip.netPay, 0);
 
   return (
@@ -54,10 +55,8 @@ export default async function AdminDashboard() {
         <Stat label="Open HR tickets" value={openHr} tone="ink" />
         <Stat label="Documents waiting" value={pendingDocs} tone="rose" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Checked in today" description={`${present} present, late, or half day · ${attendance.length} records`}>
-          <Link className="text-sm font-semibold text-teal" href={`/admin/attendance?date=${today}`}>Open roster</Link>
-        </Panel>
+      <LiveRoster initial={roster} />
+      <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Payroll this month" description={formatMoney(payroll)}>
           <Link className="text-sm font-semibold text-teal" href="/admin/payroll">Manage payslips</Link>
         </Panel>

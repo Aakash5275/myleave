@@ -1,0 +1,174 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  role           String
+  employeeCode   String   @unique
+  firstName      String
+  lastName       String
+  phone          String   @default("")
+  department     String
+  jobTitle       String
+  hireDate       DateTime
+  address        String   @default("")
+  emergencyName  String   @default("")
+  emergencyPhone String   @default("")
+  status         String   @default("Active")
+  salary         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  attendances      Attendance[]
+  leaveBalances    LeaveBalance[]
+  leaveRequests    LeaveRequest[]    @relation("LeaveEmployee")
+  leavesReviewed   LeaveRequest[]    @relation("LeaveReviewer")
+  payslips         Payslip[]
+  hrRequests       HrRequest[]       @relation("HrEmployee")
+  hrReviewed       HrRequest[]       @relation("HrReviewer")
+  documentRequests DocumentRequest[] @relation("DocEmployee")
+  docsReviewed     DocumentRequest[] @relation("DocReviewer")
+  announcements    Announcement[]
+  notifications    Notification[]
+}
+
+model LeaveBalance {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   String
+  total  Int
+  used   Int    @default(0)
+  year   Int
+
+  @@unique([userId, type, year])
+}
+
+model Attendance {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date     DateTime
+  checkIn  String?
+  checkOut String?
+  status   String
+  notes    String   @default("")
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model LeaveRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation("LeaveEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  days       Int
+  reason     String
+  status     String    @default("Pending")
+  adminNote  String    @default("")
+  reviewerId String?
+  reviewer   User?     @relation("LeaveReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+model Payslip {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  month      Int
+  year       Int
+  basic      Int
+  allowances Int
+  overtime   Int       @default(0)
+  deductions Int
+  tax        Int
+  netPay     Int
+  status     String    @default("Draft")
+  notes      String    @default("")
+  issuedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, month, year])
+  @@index([year, month])
+}
+
+model HrRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("HrEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  category    String
+  subject     String
+  description String
+  priority    String    @default("Medium")
+  status      String    @default("Pending")
+  adminNote   String    @default("")
+  reviewerId  String?
+  reviewer    User?     @relation("HrReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([userId, status])
+}
+
+model DocumentRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation("DocEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  docType    String
+  purpose    String
+  details    String    @default("")
+  status     String    @default("Pending")
+  adminNote  String    @default("")
+  reviewerId String?
+  reviewer   User?     @relation("DocReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([status])
+  @@index([userId, status])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  pinned    Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  kind      String
+  href      String   @default("")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}

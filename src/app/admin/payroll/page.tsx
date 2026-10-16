@@ -1,0 +1,97 @@
+import Link from "next/link";
+import { PayslipForm } from "@/components/admin-forms";
+import { StatusBadge } from "@/components/status-badge";
+import { Empty, Field, FilterBar, PageHeader, Panel, inputClass, td, th } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
+import { formatMoney, formatMonth, fullName, matchesQuery, monthKeys, queryValue } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
+
+export const metadata = { title: "Payroll" };
+
+export default async function AdminPayrollPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requireUser("ADMIN");
+  const params = await searchParams;
+  const q = queryValue(params.q);
+  const month = queryValue(params.month);
+  const status = queryValue(params.status);
+  const range = month ? monthKeys(month) : null;
+  const [employees, slips] = await Promise.all([
+    prisma.user.findMany({ where: { role: "EMPLOYEE", status: "Active" }, orderBy: { firstName: "asc" } }),
+    prisma.payslip.findMany({ include: { user: true }, orderBy: [{ year: "desc" }, { month: "desc" }] }),
+  ]);
+  const visible = slips.filter((slip) => {
+    if (status && slip.status !== status) return false;
+    if (range && (slip.year !== range.year || slip.month !== range.month)) return false;
+    return matchesQuery(q, [fullName(slip.user), slip.user.employeeCode, formatMonth(slip.year, slip.month), slip.status]);
+  });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader eyebrow="Pay" title="Payroll" description="Issue a payslip to notify the employee, or save a draft until the numbers are final." />
+      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+        <Panel title="New payslip">
+          {employees.length ? (
+            <PayslipForm
+              employees={employees.map((employee) => ({
+                id: employee.id,
+                name: `${fullName(employee)} · ${employee.employeeCode}`,
+                salary: employee.salary,
+              }))}
+            />
+          ) : (
+            <p className="text-sm text-mist">Add an active employee before creating a payslip.</p>
+          )}
+        </Panel>
+        <div>
+          <FilterBar clearHref="/admin/payroll">
+            <Field label="Search">
+              <input className={inputClass} name="q" defaultValue={q} placeholder="Employee or period" />
+            </Field>
+            <Field label="Month">
+              <input className={inputClass} type="month" name="month" defaultValue={month} />
+            </Field>
+            <Field label="Status">
+              <select className={inputClass} name="status" defaultValue={status}>
+                <option value="">All</option>
+                <option>Draft</option>
+                <option>Issued</option>
+              </select>
+            </Field>
+          </FilterBar>
+          {visible.length ? (
+            <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className={th}>Employee</th>
+                    <th className={th}>Period</th>
+                    <th className={th}>Net</th>
+                    <th className={th}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((slip) => (
+                    <tr key={slip.id}>
+                      <td className={td}>{fullName(slip.user)}</td>
+                      <td className={td}>
+                        <Link className="font-semibold text-teal" href={`/admin/payroll/${slip.id}`}>{formatMonth(slip.year, slip.month)}</Link>
+                      </td>
+                      <td className={td}>{formatMoney(slip.netPay)}</td>
+                      <td className={td}><StatusBadge value={slip.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <Empty title="No payslips in this view" body="Create one, or clear the month filter." />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

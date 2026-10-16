@@ -1,0 +1,211 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ActionForm } from "@/components/action-form";
+import { Modal } from "@/components/modal";
+import { btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
+import { DOC_TYPES, HR_CATEGORIES, LEAVE_TYPES, PRIORITIES } from "@/lib/constants";
+import { clock, applyLeave, changePassword, createDocumentRequest, createHrRequest, updateProfile } from "@/server/employee-actions";
+
+export function AttendanceClock({
+  dateLabel,
+  checkIn,
+  checkOut,
+  status,
+}: {
+  dateLabel: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: string | null;
+}) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  function punch(kind: "in" | "out") {
+    startTransition(async () => {
+      const result = await clock(kind);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError("");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <p className="text-sm text-mist">Today · {dateLabel}</p>
+      <p className="mt-2 text-2xl font-semibold">{status ?? "Not checked in"}</p>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-mist">Check in</dt>
+          <dd className="font-medium">{checkIn ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-mist">Check out</dt>
+          <dd className="font-medium">{checkOut ?? "—"}</dd>
+        </div>
+      </dl>
+      {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button className={btnPrimary} type="button" disabled={pending || Boolean(checkIn)} onClick={() => punch("in")}>
+          Check in
+        </button>
+        <button className={btnSecondary} type="button" disabled={pending || !checkIn || Boolean(checkOut)} onClick={() => punch("out")}>
+          Check out
+        </button>
+      </div>
+      <p className="mt-3 text-xs text-mist">Check-in after 09:30 is marked late. Times use India Standard Time.</p>
+    </div>
+  );
+}
+
+export function LeaveApplyButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className={btnPrimary} type="button" onClick={() => setOpen(true)}>
+        Apply for leave
+      </button>
+      <Modal open={open} title="Apply for leave" onClose={() => setOpen(false)}>
+        <ActionForm action={applyLeave} submitLabel="Submit request" resetOnSuccess onSuccess={() => setOpen(false)}>
+          <Field label="Type">
+            <select name="type" className={inputClass} defaultValue="Annual">
+              {LEAVE_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Start">
+              <input className={inputClass} type="date" name="startDate" required />
+            </Field>
+            <Field label="End">
+              <input className={inputClass} type="date" name="endDate" required />
+            </Field>
+          </div>
+          <Field label="Reason">
+            <textarea className={inputClass} name="reason" rows={4} required minLength={8} placeholder="Why do you need this leave?" />
+          </Field>
+        </ActionForm>
+      </Modal>
+    </>
+  );
+}
+
+export function HrRequestButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className={btnPrimary} type="button" onClick={() => setOpen(true)}>
+        New request
+      </button>
+      <Modal open={open} title="Raise an HR request" onClose={() => setOpen(false)}>
+        <ActionForm action={createHrRequest} submitLabel="Submit" resetOnSuccess onSuccess={() => setOpen(false)}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Category">
+              <select name="category" className={inputClass} defaultValue="Payroll">
+                {HR_CATEGORIES.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Priority">
+              <select name="priority" className={inputClass} defaultValue="Medium">
+                {PRIORITIES.map((item) => (
+                  <option key={item}>{item}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Subject">
+            <input className={inputClass} name="subject" required minLength={4} placeholder="Short summary" />
+          </Field>
+          <Field label="Description">
+            <textarea className={inputClass} name="description" rows={4} required minLength={10} placeholder="What should HR look at?" />
+          </Field>
+        </ActionForm>
+      </Modal>
+    </>
+  );
+}
+
+export function DocumentRequestButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className={btnPrimary} type="button" onClick={() => setOpen(true)}>
+        Request document
+      </button>
+      <Modal open={open} title="Request a document" onClose={() => setOpen(false)}>
+        <ActionForm action={createDocumentRequest} submitLabel="Submit" resetOnSuccess onSuccess={() => setOpen(false)}>
+          <Field label="Document">
+            <select name="docType" className={inputClass} defaultValue={DOC_TYPES[0]}>
+              {DOC_TYPES.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Purpose">
+            <textarea className={inputClass} name="purpose" rows={3} required minLength={8} placeholder="Who is this for, and why?" />
+          </Field>
+          <Field label="Extra details">
+            <textarea className={inputClass} name="details" rows={3} placeholder="Optional dates, address, or wording" />
+          </Field>
+        </ActionForm>
+      </Modal>
+    </>
+  );
+}
+
+export function ProfileForms({
+  phone,
+  address,
+  emergencyName,
+  emergencyPhone,
+}: {
+  phone: string;
+  address: string;
+  emergencyName: string;
+  emergencyPhone: string;
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold">Contact details</h2>
+        <ActionForm action={updateProfile} submitLabel="Save profile">
+          <Field label="Phone">
+            <input className={inputClass} name="phone" defaultValue={phone} />
+          </Field>
+          <Field label="Address">
+            <textarea className={inputClass} name="address" rows={3} defaultValue={address} />
+          </Field>
+          <Field label="Emergency contact">
+            <input className={inputClass} name="emergencyName" defaultValue={emergencyName} />
+          </Field>
+          <Field label="Emergency phone">
+            <input className={inputClass} name="emergencyPhone" defaultValue={emergencyPhone} />
+          </Field>
+        </ActionForm>
+      </div>
+      <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-base font-semibold">Password</h2>
+        <p className="mb-4 text-sm text-mist">Use at least 8 characters, with a letter and a number.</p>
+        <ActionForm action={changePassword} submitLabel="Update password" resetOnSuccess>
+          <Field label="Current password">
+            <input className={inputClass} type="password" name="current" autoComplete="current-password" required />
+          </Field>
+          <Field label="New password">
+            <input className={inputClass} type="password" name="next" autoComplete="new-password" required />
+          </Field>
+          <Field label="Confirm new password">
+            <input className={inputClass} type="password" name="confirm" autoComplete="new-password" required />
+          </Field>
+        </ActionForm>
+      </div>
+    </div>
+  );
+}

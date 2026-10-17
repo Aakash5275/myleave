@@ -23,8 +23,8 @@ export default async function AdminPayslipPage({ params }: { params: Promise<{ i
         <Link className="text-sm font-semibold text-teal" href="/admin/payroll">Back to payroll</Link>
         <PrintButton label="Print payslip" />
       </div>
-      <div className="grid gap-4 print:hidden lg:grid-cols-2">
-        <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <div className="grid items-start gap-4 print:hidden xl:grid-cols-2">
+        <div className="min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-base font-semibold">Edit payslip</h2>
           <PayslipForm
             employees={employees.map((employee) => ({

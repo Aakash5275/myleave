@@ -357,9 +357,9 @@ export function PayslipForm({
   );
 
   return (
-    <ActionForm action={savePayslip} submitLabel="Issue payslip" secondary={<button className={btnSecondary} name="intent" value="draft" type="submit">Save draft</button>}>
+    <ActionForm className="@container space-y-3" action={savePayslip} submitLabel="Issue payslip" secondary={<button className={btnSecondary} name="intent" value="draft" type="submit">Save draft</button>}>
       {payslip ? <input type="hidden" name="id" value={payslip.id} /> : null}
-      <Field label="Employee">
+      <Field label="Employee" className="min-w-0!">
         <select
           className={inputClass}
           name="userId"
@@ -380,28 +380,28 @@ export function PayslipForm({
           ))}
         </select>
       </Field>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Month">
+      <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
+        <Field label="Month" className="min-w-0!">
           <input className={inputClass} type="number" name="month" min={1} max={12} defaultValue={payslip?.month ?? new Date().getMonth() + 1} required />
         </Field>
-        <Field label="Year">
+        <Field label="Year" className="min-w-0!">
           <input className={inputClass} type="number" name="year" min={2000} max={2100} defaultValue={payslip?.year ?? new Date().getFullYear()} required />
         </Field>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Basic">
+      <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
+        <Field label="Basic" className="min-w-0!">
           <input className={inputClass} type="number" name="basic" min={0} value={basic} onChange={(event) => setBasic(Number(event.target.value))} required />
         </Field>
-        <Field label="Allowances">
+        <Field label="Allowances" className="min-w-0!">
           <input className={inputClass} type="number" name="allowances" min={0} value={allowances} onChange={(event) => setAllowances(Number(event.target.value))} required />
         </Field>
-        <Field label="Overtime">
+        <Field label="Overtime" className="min-w-0!">
           <input className={inputClass} type="number" name="overtime" min={0} value={overtime} onChange={(event) => setOvertime(Number(event.target.value))} required />
         </Field>
-        <Field label="Deductions">
+        <Field label="Deductions" className="min-w-0!">
           <input className={inputClass} type="number" name="deductions" min={0} value={deductions} onChange={(event) => setDeductions(Number(event.target.value))} required />
         </Field>
-        <Field label="Tax">
+        <Field label="Tax" className="min-w-0!">
           <input className={inputClass} type="number" name="tax" min={0} value={tax} onChange={(event) => setTax(Number(event.target.value))} required />
         </Field>
       </div>

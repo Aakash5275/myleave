@@ -29,7 +29,7 @@ export function PayslipSheet({
   ] as const;
 
   return (
-    <article className="rounded-2xl border border-line bg-white p-6 shadow-sm print:border-0 print:shadow-none">
+    <article className="min-w-0 rounded-2xl border border-line bg-white p-6 shadow-sm print:border-0 print:shadow-none">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">MyLeave</p>

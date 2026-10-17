@@ -32,8 +32,8 @@ export default async function AdminPayrollPage({
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Pay" title="Payroll" description="Issue a payslip to notify the employee, or save a draft until the numbers are final." />
-      <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <Panel title="New payslip">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+        <Panel className="min-w-0" title="New payslip">
           {employees.length ? (
             <PayslipForm
               employees={employees.map((employee) => ({
@@ -46,7 +46,7 @@ export default async function AdminPayrollPage({
             <p className="text-sm text-mist">Add an active employee before creating a payslip.</p>
           )}
         </Panel>
-        <div>
+        <div className="min-w-0">
           <FilterBar clearHref="/admin/payroll">
             <Field label="Search">
               <input className={inputClass} name="q" defaultValue={q} placeholder="Employee or period" />

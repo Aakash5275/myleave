@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -10,40 +8,40 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
-
-# production
 /build
+next-env.d.ts
+*.tsbuildinfo
 
-# misc
-.DS_Store
-*.pem
+# env files — keep the template, ignore real secrets
+.env*
+!.env.example
 
-# debug
+# local tooling
+.netlify
+.vercel
+.turbo
+.agents
+
+# prisma local databases
+/prisma/*.db
+/prisma/*.db-journal
+
+# test and debug output
+/coverage
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# local database
-/prisma/*.db
-/prisma/*.db-journal
-
-# Local Netlify folder
-.netlify
+# os and editor
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.pem
+.idea
+*.swp

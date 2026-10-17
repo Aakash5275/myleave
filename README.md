@@ -17,7 +17,7 @@ Use the pooler host (`aws-0-[REGION].pooler.supabase.com`). The direct host (`db
 `DATABASE_URL` must end with:
 
 ```text
-?pgbouncer=true&connection_limit=1&sslmode=require
+?pgbouncer=true&connection_limit=5&sslmode=require
 ```
 
 `DIRECT_URL` must end with:

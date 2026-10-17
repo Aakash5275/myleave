@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { COOKIE, readSession, type SessionRole } from "@/lib/session";
 
-export async function getSessionUser() {
+export const getSessionUser = cache(async function getSessionUser() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -12,7 +13,7 @@ export async function getSessionUser() {
   const user = await prisma.user.findUnique({ where: { id: session.sub } });
   if (!user || user.status !== "Active" || user.role !== session.role) return null;
   return user;
-}
+});
 
 export async function requireUser(role?: SessionRole) {
   const user = await getSessionUser();

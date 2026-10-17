@@ -20,8 +20,22 @@ export default async function AdminPayrollPage({
   const status = queryValue(params.status);
   const range = month ? monthKeys(month) : null;
   const [employees, slips] = await Promise.all([
-    prisma.user.findMany({ where: { role: "EMPLOYEE", status: "Active" }, orderBy: { firstName: "asc" } }),
-    prisma.payslip.findMany({ include: { user: true }, orderBy: [{ year: "desc" }, { month: "desc" }] }),
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE", status: "Active" },
+      select: { id: true, firstName: true, lastName: true, employeeCode: true, salary: true },
+      orderBy: { firstName: "asc" },
+    }),
+    prisma.payslip.findMany({
+      select: {
+        id: true,
+        year: true,
+        month: true,
+        netPay: true,
+        status: true,
+        user: { select: { firstName: true, lastName: true, employeeCode: true } },
+      },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+    }),
   ]);
   const visible = slips.filter((slip) => {
     if (status && slip.status !== status) return false;

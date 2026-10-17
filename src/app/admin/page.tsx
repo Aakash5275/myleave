@@ -21,23 +21,26 @@ export default async function AdminDashboard() {
       loadTodayRoster(),
       prisma.leaveRequest.findMany({
         where: { status: { in: ["Pending", "In Progress"] } },
-        include: { user: true },
+        select: { id: true, type: true, startDate: true, days: true, status: true, user: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: "asc" },
         take: 5,
       }),
       prisma.hrRequest.findMany({
         where: { status: { in: ["Pending", "In Progress"] } },
-        include: { user: true },
+        select: { id: true, subject: true, status: true, user: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: "asc" },
         take: 5,
       }),
       prisma.documentRequest.findMany({
         where: { status: { in: ["Pending", "In Progress"] } },
-        include: { user: true },
+        select: { id: true, docType: true, status: true, user: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: "asc" },
         take: 5,
       }),
-      prisma.payslip.findMany({ where: { status: "Issued", year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) } }),
+      prisma.payslip.findMany({
+        where: { status: "Issued", year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) },
+        select: { netPay: true },
+      }),
     ]);
   const payroll = payslips.reduce((sum, slip) => sum + slip.netPay, 0);
 

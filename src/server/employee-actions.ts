@@ -22,6 +22,7 @@ import {
 import { distanceMeters, ORG_SETTING_ID, parseGps, WORKPLACE_ID } from "@/lib/geo";
 import { availableDays, ensureBalances } from "@/server/leave";
 import { notifyAdmins, refresh } from "@/server/notify";
+import { notifyLeaveSlack } from "@/server/slack";
 
 async function requireAtWorkplace(location: unknown, remoteClock: boolean) {
   const fix = parseGps(location);
@@ -151,6 +152,14 @@ export async function applyLeave(formData: FormData) {
     message: `${user.firstName} ${user.lastName} requested ${days} day(s) of ${type.toLowerCase()} leave.`,
     kind: "leave",
     href: "/admin/leave?status=Pending",
+  });
+  await notifyLeaveSlack({
+    name: `${user.firstName} ${user.lastName}`,
+    type,
+    start,
+    end,
+    days,
+    reason,
   });
   refresh();
   return {};

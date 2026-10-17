@@ -4,7 +4,7 @@ import { COOKIE, readSession } from "@/lib/session";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (pathname === "/logout") return NextResponse.next();
+  if (pathname === "/logout" || pathname === "/api/leave-day") return NextResponse.next();
 
   const token = request.cookies.get(COOKIE)?.value;
   const session = token ? await readSession(token) : null;

@@ -1,4 +1,4 @@
-import { LeaveApplyButton } from "@/components/employee-forms";
+import { CancelLeaveButton, LeaveApplyButton } from "@/components/employee-forms";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, inputClass, td, th } from "@/components/ui";
 import { LEAVE_TYPES, REQUEST_STATUSES } from "@/lib/constants";
@@ -40,7 +40,7 @@ export default async function LeavePage({
       <PageHeader
         eyebrow="Time off"
         title="Leave"
-        description="Balances update when HR approves or resolves a request. You will get a notification either way."
+        description="Balances update when HR approves a request. You can withdraw your own leave, and that does not notify anyone."
         action={<LeaveApplyButton />}
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -74,6 +74,7 @@ export default async function LeavePage({
             {REQUEST_STATUSES.map((item) => (
               <option key={item}>{item}</option>
             ))}
+            <option>Cancelled</option>
           </select>
         </Field>
       </FilterBar>
@@ -87,6 +88,7 @@ export default async function LeavePage({
                 <th className={th}>Days</th>
                 <th className={th}>Reason</th>
                 <th className={th}>Status</th>
+                <th className={th}> </th>
               </tr>
             </thead>
             <tbody>
@@ -100,6 +102,11 @@ export default async function LeavePage({
                     {request.adminNote ? <p className="mt-1 text-mist">HR: {request.adminNote}</p> : null}
                   </td>
                   <td className={td}><StatusBadge value={request.status} /></td>
+                  <td className={td}>
+                    {request.status === "Rejected" || request.status === "Cancelled" ? null : (
+                      <CancelLeaveButton id={request.id} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

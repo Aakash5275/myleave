@@ -4,10 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
 import { Modal } from "@/components/modal";
-import { btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
+import { btnDanger, btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
 import { DOC_TYPES, HR_CATEGORIES, LEAVE_TYPES, PRIORITIES } from "@/lib/constants";
 import { GpsLink } from "@/components/gps-link";
-import { clock, applyLeave, changePassword, createDocumentRequest, createHrRequest, updateProfile } from "@/server/employee-actions";
+import { clock, applyLeave, cancelLeave, changePassword, createDocumentRequest, createHrRequest, updateProfile } from "@/server/employee-actions";
 
 type PunchLocation = { latitude: number; longitude: number } | null;
 
@@ -122,6 +122,37 @@ export function AttendanceClock({
             ? `GPS is required. You must be within ${office.radiusM} m of ${office.name}. Check-in after 09:30 is marked late. Times use India Standard Time.`
             : "GPS check-in is waiting for HR to save the office location."}
       </p>
+    </div>
+  );
+}
+
+export function CancelLeaveButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <div>
+      <button
+        className={btnDanger}
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (!window.confirm("Withdraw this leave? No one will be notified.")) return;
+          startTransition(async () => {
+            const result = await cancelLeave(id);
+            if (result.error) {
+              setError(result.error);
+              return;
+            }
+            setError("");
+            router.refresh();
+          });
+        }}
+      >
+        {pending ? "Withdrawing…" : "Withdraw"}
+      </button>
+      {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : null}
     </div>
   );
 }

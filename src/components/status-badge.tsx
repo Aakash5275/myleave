@@ -2,7 +2,7 @@ const tones: Record<string, string> = {
   Pending: "bg-amber-50 text-amber-800 ring-amber-200",
   "In Progress": "bg-sky-50 text-sky-800 ring-sky-200",
   Approved: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  Rejected: "bg-rose-50 text-rose-700 ring-rose-200",
+  Cancelled: "bg-stone-100 text-stone-600 ring-stone-200",
   Resolved: "bg-teal/10 text-teal ring-teal/20",
   Working: "bg-emerald-50 text-emerald-800 ring-emerald-200",
   "Checked out": "bg-slate-100 text-slate-700 ring-slate-200",

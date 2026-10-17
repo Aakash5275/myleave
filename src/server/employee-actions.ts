@@ -20,9 +20,9 @@ import {
   validPassword,
 } from "@/lib/validate";
 import { distanceMeters, ORG_SETTING_ID, parseGps, WORKPLACE_ID } from "@/lib/geo";
-import { availableDays, ensureBalances } from "@/server/leave";
+import { availableDays, ensureBalances, syncLeaveAcceptance } from "@/server/leave";
 import { notifyAdmins, refresh } from "@/server/notify";
-import { notifyLeaveSlack } from "@/server/slack";
+import { notifyLeaveRequested } from "@/server/slack";
 
 async function requireAtWorkplace(location: unknown, remoteClock: boolean) {
   const fix = parseGps(location);
@@ -153,7 +153,7 @@ export async function applyLeave(formData: FormData) {
     kind: "leave",
     href: "/admin/leave?status=Pending",
   });
-  await notifyLeaveSlack({
+  await notifyLeaveRequested({
     name: `${user.firstName} ${user.lastName}`,
     type,
     start,
@@ -161,6 +161,33 @@ export async function applyLeave(formData: FormData) {
     days,
     reason,
   });
+  refresh();
+  return {};
+}
+
+export async function cancelLeave(id: string) {
+  const user = await requireUser("EMPLOYEE");
+  const leave = await prisma.leaveRequest.findFirst({
+    where: { id, userId: user.id },
+  });
+  if (!leave) return { error: "Leave request not found." };
+  const claimed = await prisma.leaveRequest.updateMany({
+    where: {
+      id: leave.id,
+      userId: user.id,
+      status: { in: ["Pending", "In Progress", "Approved", "Resolved"] },
+    },
+    data: { status: "Cancelled" },
+  });
+  if (!claimed.count) return { error: "This request can no longer be withdrawn." };
+  const balanceError = await syncLeaveAcceptance(leave, "Cancelled");
+  if (balanceError) {
+    await prisma.leaveRequest.update({
+      where: { id: leave.id },
+      data: { status: leave.status },
+    });
+    return { error: balanceError };
+  }
   refresh();
   return {};
 }

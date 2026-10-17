@@ -38,7 +38,7 @@ Then set the app secrets in `.env`:
 | `INITIAL_ADMIN_EMAIL` | Email for the first admin account. |
 | `INITIAL_ADMIN_NAME` | Full name for that account. |
 | `INITIAL_ADMIN_PASSWORD` | 8–72 characters, with at least one letter and one number. Stored only as a hash. |
-| `SLACK_WEBHOOK_URL` | Optional Slack incoming webhook. New leave requests are posted to that channel. |
+| `SLACK_WEBHOOK_URL` | Optional Slack incoming webhook. Leave requests, approvals, and the daily 8:00 IST “on leave today” note are posted there. |
 
 Do not commit `.env`.
 
@@ -86,7 +86,7 @@ In the Netlify site, set these variables for **Builds**, **Functions**, and **Ru
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 - `INITIAL_ADMIN_PASSWORD`
-- `SLACK_WEBHOOK_URL` (optional; posts new leave requests to Slack)
+- `SLACK_WEBHOOK_URL` (optional; posts leave requests, approvals, and the daily 8:00 IST “on leave today” note)
 
 Use the same pooler URLs as local development, including `pgbouncer=true` on `DATABASE_URL`. Generate a new `AUTH_SECRET` for production.
 

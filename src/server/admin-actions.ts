@@ -24,8 +24,9 @@ import {
   parseAmount,
   validPassword,
 } from "@/lib/validate";
-import { ensureBalances, syncLeaveAcceptance } from "@/server/leave";
+import { ensureBalances, leaveAccepted, syncLeaveAcceptance } from "@/server/leave";
 import { notify, refresh, reviewMessage } from "@/server/notify";
+import { notifyLeaveApproved } from "@/server/slack";
 
 function duplicateMessage(error: unknown, fallback: string) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -328,6 +329,17 @@ export async function reviewLeave(formData: FormData) {
     kind: "leave",
     href: "/employee/leave",
   });
+  if (leaveAccepted(status) && !leaveAccepted(leave.status)) {
+    await notifyLeaveApproved({
+      name: fullName(leave.user),
+      type: leave.type,
+      start: leave.startDate,
+      end: leave.endDate,
+      days: leave.days,
+      automatic: false,
+      reviewer: fullName(admin),
+    });
+  }
   refresh();
   return {};
 }

@@ -32,7 +32,6 @@ export default async function EmployeeDashboard() {
     ]);
 
   const presentDays = monthAttendance.filter((row) => ["Present", "Late", "Half Day"].includes(row.status)).length;
-  const annual = balances.find((balance) => balance.type === "Annual");
 
   return (
     <div className="space-y-6">
@@ -42,8 +41,7 @@ export default async function EmployeeDashboard() {
         description="Track attendance, leave balance, payslips, and anything you have asked HR to handle."
       />
       <Workflow />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Annual leave left" value={annual ? annual.total - annual.used : 0} hint="Approved days already deducted" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Open requests" value={pendingLeave + openHr + openDocs} hint="Leave, HR, and documents" tone="amber" />
         <Stat label="Days worked" value={presentDays} hint={formatMonth(month.year, month.month)} tone="ink" />
         <Stat label="Latest net pay" value={payslip ? formatMoney(payslip.netPay) : "—"} hint={payslip ? formatMonth(payslip.year, payslip.month) : "No payslip yet"} />

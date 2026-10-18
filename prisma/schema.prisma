@@ -85,10 +85,11 @@ model Workplace {
 }
 
 model OrgSetting {
-  id              String   @id @default("default")
-  clockAnywhere   Boolean  @default(false)
-  lastLeaveDigest String   @default("")
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default("default")
+  clockAnywhere     Boolean  @default(false)
+  attendanceEnabled Boolean  @default(true)
+  lastLeaveDigest   String   @default("")
+  updatedAt         DateTime @updatedAt
 }
 
 model LeaveRequest {

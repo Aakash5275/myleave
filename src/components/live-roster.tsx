@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { AttendanceToggle } from "@/components/attendance-toggle";
 import { GpsLink } from "@/components/gps-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Stat, td, th } from "@/components/ui";
@@ -82,6 +83,10 @@ export function LiveRoster({ initial }: { initial: TodayRoster }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <AttendanceToggle
+            enabled={roster.attendanceEnabled}
+            onChange={(next) => setRoster((current) => ({ ...current, attendanceEnabled: next }))}
+          />
           <button
             type="button"
             role="switch"
@@ -116,9 +121,12 @@ export function LiveRoster({ initial }: { initial: TodayRoster }) {
         </div>
       </div>
       <p className="text-sm text-mist">
+        {roster.attendanceEnabled
+          ? "Employee attendance is on, so people can check in and open their attendance page."
+          : "Employee attendance is off, so check-in, the attendance page, and attendance notices are hidden from employees."}{" "}
         {anywhere
-          ? "On: every employee can check in and check out from any place. GPS is fetched automatically and saved on both punches."
-          : "Off: employees must be inside the office radius, unless their own profile allows anywhere."}
+          ? "Everyone can punch from any place. GPS is fetched automatically and saved on both punches."
+          : "Punches must be inside the office radius, unless a profile allows anywhere."}
       </p>
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       <div className="grid gap-3 sm:grid-cols-3">

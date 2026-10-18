@@ -31,6 +31,7 @@ export default async function EmployeeDashboard() {
       prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } }),
     ]);
 
+  const showAttendance = policy?.attendanceEnabled !== false;
   const presentDays = monthAttendance.filter((row) => ["Present", "Late", "Half Day"].includes(row.status)).length;
 
   return (
@@ -38,34 +39,42 @@ export default async function EmployeeDashboard() {
       <PageHeader
         eyebrow="Employee"
         title={`Good to see you, ${user.firstName}`}
-        description="Track attendance, leave balance, payslips, and anything you have asked HR to handle."
+        description={
+          showAttendance
+            ? "Track attendance, leave balance, payslips, and anything you have asked HR to handle."
+            : "Track leave balance, payslips, and anything you have asked HR to handle."
+        }
       />
       <Workflow />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Open requests" value={pendingLeave + openHr + openDocs} hint="Leave, HR, and documents" tone="amber" />
-        <Stat label="Days worked" value={presentDays} hint={formatMonth(month.year, month.month)} tone="ink" />
+        {showAttendance ? (
+          <Stat label="Days worked" value={presentDays} hint={formatMonth(month.year, month.month)} tone="ink" />
+        ) : null}
         <Stat label="Latest net pay" value={payslip ? formatMoney(payslip.netPay) : "—"} hint={payslip ? formatMonth(payslip.year, payslip.month) : "No payslip yet"} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <AttendanceClock
-          dateLabel={formatDate(`${today}T00:00:00.000Z`)}
-          checkIn={todayAttendance?.checkIn ?? null}
-          checkOut={todayAttendance?.checkOut ?? null}
-          checkInLocation={
-            todayAttendance?.checkInLat != null && todayAttendance.checkInLng != null
-              ? { latitude: todayAttendance.checkInLat, longitude: todayAttendance.checkInLng }
-              : null
-          }
-          checkOutLocation={
-            todayAttendance?.checkOutLat != null && todayAttendance.checkOutLng != null
-              ? { latitude: todayAttendance.checkOutLat, longitude: todayAttendance.checkOutLng }
-              : null
-          }
-          status={todayAttendance?.status ?? null}
-          office={office}
-          remoteClock={user.remoteClock || Boolean(policy?.clockAnywhere)}
-        />
-        <Panel className="lg:col-span-2" title="Leave balances" description={`${year} allowance. Pending requests are not deducted until approved.`}>
+        {showAttendance ? (
+          <AttendanceClock
+            dateLabel={formatDate(`${today}T00:00:00.000Z`)}
+            checkIn={todayAttendance?.checkIn ?? null}
+            checkOut={todayAttendance?.checkOut ?? null}
+            checkInLocation={
+              todayAttendance?.checkInLat != null && todayAttendance.checkInLng != null
+                ? { latitude: todayAttendance.checkInLat, longitude: todayAttendance.checkInLng }
+                : null
+            }
+            checkOutLocation={
+              todayAttendance?.checkOutLat != null && todayAttendance.checkOutLng != null
+                ? { latitude: todayAttendance.checkOutLat, longitude: todayAttendance.checkOutLng }
+                : null
+            }
+            status={todayAttendance?.status ?? null}
+            office={office}
+            remoteClock={user.remoteClock || Boolean(policy?.clockAnywhere)}
+          />
+        ) : null}
+        <Panel className={showAttendance ? "lg:col-span-2" : "lg:col-span-3"} title="Leave balances" description={`${year} allowance. Pending requests are not deducted until approved.`}>
           <div className="grid gap-3 sm:grid-cols-2">
             {balances.map((balance) => (
               <div key={balance.id} className="rounded-xl bg-sand px-4 py-3">

@@ -65,16 +65,20 @@ function isActive(href: string, pathname: string) {
 export function AppShell({
   user,
   unread,
+  showAttendance = true,
   children,
 }: {
   user: ShellUser;
   unread: number;
+  showAttendance?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath === pathname;
-  const links = user.role === "ADMIN" ? adminLinks : employeeLinks;
+  const links = (user.role === "ADMIN" ? adminLinks : employeeLinks).filter(
+    (link) => showAttendance || link.href !== "/employee/attendance",
+  );
 
   return (
     <div className="min-h-screen bg-sand text-ink">

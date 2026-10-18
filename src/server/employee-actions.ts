@@ -47,6 +47,7 @@ async function requireAtWorkplace(location: unknown, remoteClock: boolean) {
 export async function clock(kind: "in" | "out", location: unknown) {
   const user = await requireUser("EMPLOYEE");
   const policy = await prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } });
+  if (policy?.attendanceEnabled === false) return { error: "Attendance is turned off." };
   const gate = await requireAtWorkplace(location, user.remoteClock || Boolean(policy?.clockAnywhere));
   if ("error" in gate) return { error: gate.error };
   const key = todayKey();

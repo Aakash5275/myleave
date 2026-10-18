@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { PunchLocation } from "@/components/gps-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, Stat, inputClass, td, th } from "@/components/ui";
@@ -5,6 +6,7 @@ import { ATTENDANCE_STATUSES } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { dateKey, formatDate, monthKeys, parseKey, queryValue, todayKey, weekdayLabels } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { attendanceEnabled } from "@/server/settings";
 
 export const metadata = { title: "Attendance" };
 
@@ -14,6 +16,7 @@ export default async function AttendancePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser("EMPLOYEE");
+  if (!(await attendanceEnabled())) redirect("/employee");
   const params = await searchParams;
   const monthValue = queryValue(params.month) || todayKey().slice(0, 7);
   const status = queryValue(params.status);

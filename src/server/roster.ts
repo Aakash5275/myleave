@@ -28,6 +28,7 @@ export type TodayRoster = {
   dateLabel: string;
   asOf: string;
   clockAnywhere: boolean;
+  attendanceEnabled: boolean;
   working: number;
   checkedOut: number;
   notIn: number;
@@ -85,6 +86,7 @@ export async function loadTodayRoster(): Promise<TodayRoster> {
     dateLabel: formatDate(`${today}T00:00:00.000Z`),
     asOf: nowStamp(),
     clockAnywhere: Boolean(policy?.clockAnywhere),
+    attendanceEnabled: policy?.attendanceEnabled !== false,
     working: rows.filter((row) => row.state === "Working").length,
     checkedOut: rows.filter((row) => row.state === "Checked out").length,
     notIn: rows.filter((row) => row.state === "Not in" || row.state === "Absent").length,

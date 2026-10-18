@@ -194,6 +194,18 @@ export async function setClockAnywhere(enabled: boolean) {
   return {};
 }
 
+export async function setAttendanceEnabled(enabled: boolean) {
+  await requireUser("ADMIN");
+  if (typeof enabled !== "boolean") return { error: "Choose on or off." };
+  await prisma.orgSetting.upsert({
+    where: { id: ORG_SETTING_ID },
+    create: { id: ORG_SETTING_ID, attendanceEnabled: enabled },
+    update: { attendanceEnabled: enabled },
+  });
+  refresh();
+  return {};
+}
+
 export async function saveWorkplace(formData: FormData) {
   await requireUser("ADMIN");
   const name = cleanText(formData.get("name"), 80);

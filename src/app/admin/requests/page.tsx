@@ -22,15 +22,28 @@ export default async function AdminRequestsPage({
   const category = queryValue(params.category);
   const priority = queryValue(params.priority);
   const requests = await prisma.hrRequest.findMany({
-    include: { user: true },
+    where: {
+      ...(status ? { status } : {}),
+      ...(category ? { category } : {}),
+      ...(priority ? { priority } : {}),
+    },
+    select: {
+      id: true,
+      userId: true,
+      subject: true,
+      description: true,
+      category: true,
+      priority: true,
+      status: true,
+      adminNote: true,
+      createdAt: true,
+      user: { select: { firstName: true, lastName: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
-  const visible = requests.filter((request) => {
-    if (status && request.status !== status) return false;
-    if (category && request.category !== category) return false;
-    if (priority && request.priority !== priority) return false;
-    return matchesQuery(q, [fullName(request.user), request.subject, request.description, request.category]);
-  });
+  const visible = requests.filter((request) =>
+    matchesQuery(q, [fullName(request.user), request.subject, request.description, request.category]),
+  );
 
   return (
     <div className="space-y-6">

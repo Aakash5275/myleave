@@ -1,3 +1,7 @@
+# Next.js page functions are generated at build time, so their region cannot be
+# set in this file. In Netlify, open Project configuration → Functions → Region
+# and choose Singapore (sin). The database is in Mumbai, and Singapore is the
+# closest Netlify region. The default Ohio region adds a long hop to every page.
 [build]
   command = "npx prisma generate && npx prisma migrate deploy && npx next build"
   publish = ".next"

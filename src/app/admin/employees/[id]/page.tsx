@@ -14,12 +14,27 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const employee = await prisma.user.findFirst({
     where: { id, role: "EMPLOYEE" },
-    include: {
-      attendances: { orderBy: { date: "desc" }, take: 8 },
-      leaveRequests: { orderBy: { createdAt: "desc" }, take: 6 },
-      payslips: { orderBy: [{ year: "desc" }, { month: "desc" }], take: 6 },
-      hrRequests: { orderBy: { createdAt: "desc" }, take: 6 },
-      documentRequests: { orderBy: { createdAt: "desc" }, take: 6 },
+    select: {
+      id: true,
+      employeeCode: true,
+      firstName: true,
+      lastName: true,
+      jobTitle: true,
+      department: true,
+      email: true,
+      phone: true,
+      hireDate: true,
+      address: true,
+      emergencyName: true,
+      emergencyPhone: true,
+      status: true,
+      remoteClock: true,
+      salary: true,
+      attendances: { orderBy: { date: "desc" }, take: 8, select: { id: true, date: true, status: true } },
+      leaveRequests: { orderBy: { createdAt: "desc" }, take: 6, select: { id: true, type: true, days: true, status: true } },
+      payslips: { orderBy: [{ year: "desc" }, { month: "desc" }], take: 6, select: { id: true, year: true, month: true, netPay: true } },
+      hrRequests: { orderBy: { createdAt: "desc" }, take: 6, select: { id: true, subject: true, status: true } },
+      documentRequests: { orderBy: { createdAt: "desc" }, take: 6, select: { id: true, docType: true, status: true } },
     },
   });
   if (!employee) notFound();

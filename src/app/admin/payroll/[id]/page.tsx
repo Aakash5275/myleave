@@ -12,8 +12,15 @@ export default async function AdminPayslipPage({ params }: { params: Promise<{ i
   await requireUser("ADMIN");
   const { id } = await params;
   const [slip, employees] = await Promise.all([
-    prisma.payslip.findUnique({ where: { id }, include: { user: true } }),
-    prisma.user.findMany({ where: { role: "EMPLOYEE" }, orderBy: { firstName: "asc" } }),
+    prisma.payslip.findUnique({
+      where: { id },
+      include: { user: { select: { firstName: true, lastName: true, employeeCode: true, department: true, jobTitle: true } } },
+    }),
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE" },
+      select: { id: true, firstName: true, lastName: true, employeeCode: true, salary: true },
+      orderBy: { firstName: "asc" },
+    }),
   ]);
   if (!slip) notFound();
 

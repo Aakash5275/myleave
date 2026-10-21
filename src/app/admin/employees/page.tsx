@@ -20,14 +20,24 @@ export default async function EmployeesPage({
   const department = queryValue(params.department);
   const status = queryValue(params.status);
   const employees = await prisma.user.findMany({
-    where: { role: "EMPLOYEE" },
+    where: { role: "EMPLOYEE", ...(department ? { department } : {}), ...(status ? { status } : {}) },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      employeeCode: true,
+      jobTitle: true,
+      department: true,
+      hireDate: true,
+      status: true,
+      remoteClock: true,
+    },
     orderBy: { firstName: "asc" },
   });
-  const visible = employees.filter((employee) => {
-    if (department && employee.department !== department) return false;
-    if (status && employee.status !== status) return false;
-    return matchesQuery(q, [fullName(employee), employee.email, employee.employeeCode, employee.jobTitle, employee.department]);
-  });
+  const visible = employees.filter((employee) =>
+    matchesQuery(q, [fullName(employee), employee.email, employee.employeeCode, employee.jobTitle, employee.department]),
+  );
 
   return (
     <div className="space-y-6">

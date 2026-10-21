@@ -2,37 +2,29 @@ import Link from "next/link";
 import { AttendanceClock } from "@/components/employee-forms";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader, Panel, Stat, Workflow } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
-import { ORG_SETTING_ID, WORKPLACE_ID } from "@/lib/geo";
+import { getSessionClaims, requireUser } from "@/lib/auth";
 import { formatDate, formatMoney, formatMonth, fullName, monthKeys, todayKey } from "@/lib/format";
-import { prisma } from "@/lib/prisma";
+import { loadEmployeeHome } from "@/server/home";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function EmployeeDashboard() {
-  const user = await requireUser("EMPLOYEE");
+  const claims = await getSessionClaims();
   const today = todayKey();
   const month = monthKeys(today.slice(0, 7))!;
   const year = Number(today.slice(0, 4));
-  const [balances, monthAttendance, todayAttendance, leaves, pendingLeave, openHr, openDocs, announcement, payslip, office, policy] =
-    await Promise.all([
-      prisma.leaveBalance.findMany({ where: { userId: user.id, year }, orderBy: { type: "asc" } }),
-      prisma.attendance.findMany({
-        where: { userId: user.id, date: { gte: new Date(`${month.start}T00:00:00.000Z`), lte: new Date(`${month.end}T00:00:00.000Z`) } },
-      }),
-      prisma.attendance.findUnique({ where: { userId_date: { userId: user.id, date: new Date(`${today}T00:00:00.000Z`) } } }),
-      prisma.leaveRequest.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-      prisma.leaveRequest.count({ where: { userId: user.id, status: { in: ["Pending", "In Progress"] } } }),
-      prisma.hrRequest.count({ where: { userId: user.id, status: { in: ["Pending", "In Progress"] } } }),
-      prisma.documentRequest.count({ where: { userId: user.id, status: { in: ["Pending", "In Progress"] } } }),
-      prisma.announcement.findFirst({ orderBy: [{ pinned: "desc" }, { createdAt: "desc" }], include: { author: true } }),
-      prisma.payslip.findFirst({ where: { userId: user.id, status: "Issued" }, orderBy: [{ year: "desc" }, { month: "desc" }] }),
-      prisma.workplace.findUnique({ where: { id: WORKPLACE_ID } }),
-      prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } }),
-    ]);
+  const [user, home] = await Promise.all([
+    requireUser("EMPLOYEE"),
+    claims?.role === "EMPLOYEE"
+      ? loadEmployeeHome(claims.sub, today, year, month.start, month.end)
+      : Promise.resolve(null),
+  ]);
+  if (!home) return null;
 
-  const showAttendance = policy?.attendanceEnabled !== false;
-  const presentDays = monthAttendance.filter((row) => ["Present", "Late", "Half Day"].includes(row.status)).length;
+  const showAttendance = home.attendanceEnabled;
+  const { balances, leaves, pendingLeave, openHr, openDocs, announcement, payslip, office } = home;
+  const todayAttendance = home.today;
+  const presentDays = home.presentDays;
 
   return (
     <div className="space-y-6">
@@ -71,7 +63,7 @@ export default async function EmployeeDashboard() {
             }
             status={todayAttendance?.status ?? null}
             office={office}
-            remoteClock={user.remoteClock || Boolean(policy?.clockAnywhere)}
+            remoteClock={user.remoteClock || home.clockAnywhere}
           />
         ) : null}
         <Panel className={showAttendance ? "lg:col-span-2" : "lg:col-span-3"} title="Leave balances" description={`${year} allowance. Pending requests are not deducted until approved.`}>
@@ -94,7 +86,7 @@ export default async function EmployeeDashboard() {
             <div>
               <p className="font-semibold">{announcement.title}</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-mist">{announcement.body}</p>
-              <p className="mt-3 text-xs text-mist">{fullName(announcement.author)} · {formatDate(announcement.createdAt)}</p>
+              <p className="mt-3 text-xs text-mist">{fullName(announcement)} · {formatDate(announcement.createdAt)}</p>
             </div>
           ) : (
             <p className="text-sm text-mist">No announcements yet.</p>

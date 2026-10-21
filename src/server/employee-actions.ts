@@ -265,7 +265,8 @@ export async function changePassword(formData: FormData) {
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  const matches = await bcrypt.compare(current, user.passwordHash);
+  const stored = await prisma.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
+  const matches = await bcrypt.compare(current, stored?.passwordHash ?? "");
   if (!matches) return { error: "The current password is incorrect." };
   if (!validPassword(next)) {
     return { error: "Use 8–72 characters with at least one letter and one number." };

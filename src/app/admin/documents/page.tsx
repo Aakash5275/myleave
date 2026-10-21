@@ -21,14 +21,23 @@ export default async function AdminDocumentsPage({
   const status = queryValue(params.status);
   const docType = queryValue(params.docType);
   const requests = await prisma.documentRequest.findMany({
-    include: { user: true },
+    where: { ...(status ? { status } : {}), ...(docType ? { docType } : {}) },
+    select: {
+      id: true,
+      userId: true,
+      docType: true,
+      purpose: true,
+      details: true,
+      status: true,
+      adminNote: true,
+      createdAt: true,
+      user: { select: { firstName: true, lastName: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
-  const visible = requests.filter((request) => {
-    if (status && request.status !== status) return false;
-    if (docType && request.docType !== docType) return false;
-    return matchesQuery(q, [fullName(request.user), request.docType, request.purpose, request.details]);
-  });
+  const visible = requests.filter((request) =>
+    matchesQuery(q, [fullName(request.user), request.docType, request.purpose, request.details]),
+  );
 
   return (
     <div className="space-y-6">

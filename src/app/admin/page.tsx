@@ -2,47 +2,23 @@ import Link from "next/link";
 import { LiveRoster } from "@/components/live-roster";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader, Panel, Stat, Workflow } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { getSessionClaims, requireUser } from "@/lib/auth";
 import { formatDate, formatMoney, fullName, todayKey } from "@/lib/format";
-import { prisma } from "@/lib/prisma";
+import { loadAdminHome } from "@/server/home";
 import { loadTodayRoster } from "@/server/roster";
 
 export const metadata = { title: "Admin dashboard" };
 
 export default async function AdminDashboard() {
-  await requireUser("ADMIN");
+  const claims = await getSessionClaims();
   const today = todayKey();
-  const [employees, pendingLeave, openHr, pendingDocs, roster, leaves, tickets, documents, payslips] =
-    await Promise.all([
-      prisma.user.count({ where: { role: "EMPLOYEE", status: "Active" } }),
-      prisma.leaveRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
-      prisma.hrRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
-      prisma.documentRequest.count({ where: { status: { in: ["Pending", "In Progress"] } } }),
-      loadTodayRoster(),
-      prisma.leaveRequest.findMany({
-        where: { status: { in: ["Pending", "In Progress"] } },
-        select: { id: true, type: true, startDate: true, days: true, status: true, user: { select: { firstName: true, lastName: true } } },
-        orderBy: { createdAt: "asc" },
-        take: 5,
-      }),
-      prisma.hrRequest.findMany({
-        where: { status: { in: ["Pending", "In Progress"] } },
-        select: { id: true, subject: true, status: true, user: { select: { firstName: true, lastName: true } } },
-        orderBy: { createdAt: "asc" },
-        take: 5,
-      }),
-      prisma.documentRequest.findMany({
-        where: { status: { in: ["Pending", "In Progress"] } },
-        select: { id: true, docType: true, status: true, user: { select: { firstName: true, lastName: true } } },
-        orderBy: { createdAt: "asc" },
-        take: 5,
-      }),
-      prisma.payslip.findMany({
-        where: { status: "Issued", year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) },
-        select: { netPay: true },
-      }),
-    ]);
-  const payroll = payslips.reduce((sum, slip) => sum + slip.netPay, 0);
+  const [roster, home] = await Promise.all([
+    claims?.role === "ADMIN" ? loadTodayRoster() : Promise.resolve(null),
+    claims?.role === "ADMIN" ? loadAdminHome(Number(today.slice(0, 4)), Number(today.slice(5, 7))) : Promise.resolve(null),
+    requireUser("ADMIN"),
+  ]);
+  if (!roster || !home) return null;
+  const { employees, pendingLeave, openHr, pendingDocs, payroll, leaves, tickets, documents } = home;
 
   return (
     <div className="space-y-6">
@@ -70,20 +46,20 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Queue title="Leave" href="/admin/leave?status=Pending" rows={leaves.map((item) => ({
           id: item.id,
-          title: `${fullName(item.user)} · ${item.type}`,
+          title: `${fullName(item)} · ${item.type}`,
           meta: `${formatDate(item.startDate)} · ${item.days} day(s)`,
           status: item.status,
         }))} />
         <Queue title="HR tickets" href="/admin/requests?status=Pending" rows={tickets.map((item) => ({
           id: item.id,
           title: item.subject,
-          meta: fullName(item.user),
+          meta: fullName(item),
           status: item.status,
         }))} />
         <Queue title="Documents" href="/admin/documents?status=Pending" rows={documents.map((item) => ({
           id: item.id,
           title: item.docType,
-          meta: fullName(item.user),
+          meta: fullName(item),
           status: item.status,
         }))} />
       </div>

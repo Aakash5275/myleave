@@ -20,8 +20,16 @@ export default async function LeavePage({
   const type = queryValue(params.type);
   const year = yearOf();
   const [balances, requests] = await Promise.all([
-    prisma.leaveBalance.findMany({ where: { userId: user.id, year }, orderBy: { type: "asc" } }),
-    prisma.leaveRequest.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, include: { reviewer: true } }),
+    prisma.leaveBalance.findMany({
+      where: { userId: user.id, year },
+      select: { id: true, type: true, total: true, used: true },
+      orderBy: { type: "asc" },
+    }),
+    prisma.leaveRequest.findMany({
+      where: { userId: user.id, ...(status ? { status } : {}), ...(type ? { type } : {}) },
+      select: { id: true, type: true, startDate: true, endDate: true, days: true, reason: true, status: true, adminNote: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   const pendingByType = new Map<string, number>();
   for (const request of requests) {
@@ -29,11 +37,7 @@ export default async function LeavePage({
       pendingByType.set(request.type, (pendingByType.get(request.type) ?? 0) + request.days);
     }
   }
-  const visible = requests.filter((request) => {
-    if (status && request.status !== status) return false;
-    if (type && request.type !== type) return false;
-    return matchesQuery(q, [request.type, request.reason, request.status, request.adminNote]);
-  });
+  const visible = requests.filter((request) => matchesQuery(q, [request.type, request.reason, request.status, request.adminNote]));
 
   return (
     <div className="space-y-6">

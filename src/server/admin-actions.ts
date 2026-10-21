@@ -5,7 +5,6 @@ import { Prisma } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import {
   ATTENDANCE_STATUSES,
-  DEPARTMENTS,
   EMPLOYEE_STATUSES,
   REQUEST_STATUSES,
   isOneOf,
@@ -15,6 +14,7 @@ import { formatDate, formatMonth, fullName, isWeekday, parseKey } from "@/lib/fo
 import { prisma } from "@/lib/prisma";
 import {
   cleanDate,
+  cleanDepartment,
   cleanEmail,
   cleanMultiline,
   cleanName,
@@ -42,7 +42,7 @@ export async function createEmployee(formData: FormData) {
   const lastName = cleanName(formData.get("lastName"));
   const email = cleanEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
-  const department = cleanText(formData.get("department"), 40);
+  const department = cleanDepartment(formData.get("department"), formData.get("customDepartment"));
   const jobTitle = cleanText(formData.get("jobTitle"), 80);
   const hireDate = cleanDate(formData.get("hireDate"));
   const phone = cleanPhone(formData.get("phone"));
@@ -53,7 +53,7 @@ export async function createEmployee(formData: FormData) {
   if (!validPassword(password)) {
     return { error: "Set a temporary password with 8–72 characters, a letter, and a number." };
   }
-  if (!isOneOf(department, DEPARTMENTS)) return { error: "Choose a department." };
+  if (!department) return { error: "Choose a department, or type one." };
   if (jobTitle.length < 2) return { error: "Add a job title." };
 
   const codes = await prisma.user.findMany({ select: { employeeCode: true } });
@@ -100,7 +100,7 @@ export async function updateEmployee(formData: FormData) {
   const firstName = cleanName(formData.get("firstName"));
   const lastName = cleanName(formData.get("lastName"));
   const email = cleanEmail(formData.get("email"));
-  const department = cleanText(formData.get("department"), 40);
+  const department = cleanDepartment(formData.get("department"), formData.get("customDepartment"));
   const jobTitle = cleanText(formData.get("jobTitle"), 80);
   const hireDate = cleanDate(formData.get("hireDate"));
   const phone = cleanPhone(formData.get("phone"));
@@ -112,6 +112,7 @@ export async function updateEmployee(formData: FormData) {
   const salary = parseAmount(formData.get("salary"));
   const employee = await prisma.user.findFirst({ where: { id, role: "EMPLOYEE" } });
   if (!employee) return { error: "Employee not found." };
+  if (!department) return { error: "Choose a department, or type one." };
   if (
     !firstName ||
     !lastName ||
@@ -120,7 +121,6 @@ export async function updateEmployee(formData: FormData) {
     phone === null ||
     emergencyPhone === null ||
     salary === null ||
-    !isOneOf(department, DEPARTMENTS) ||
     !isOneOf(status, EMPLOYEE_STATUSES)
   ) {
     return { error: "Check the employee details and try again." };

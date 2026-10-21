@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
 import { Modal } from "@/components/modal";
 import { btnPrimary, btnSecondary, Field, inputClass } from "@/components/ui";
-import { ATTENDANCE_STATUSES, DEPARTMENTS, EMPLOYEE_STATUSES } from "@/lib/constants";
+import { ATTENDANCE_STATUSES, DEPARTMENTS, EMPLOYEE_STATUSES, OTHER_DEPARTMENT } from "@/lib/constants";
 import { formatMoney } from "@/lib/format";
 import { GpsLink } from "@/components/gps-link";
 import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/geo";
@@ -21,6 +21,35 @@ import {
   updateAttendance,
   updateEmployee,
 } from "@/server/admin-actions";
+
+function DepartmentField({ defaultValue = "Engineering" }: { defaultValue?: string }) {
+  const preset = (DEPARTMENTS as readonly string[]).includes(defaultValue);
+  const [choice, setChoice] = useState(preset ? defaultValue : OTHER_DEPARTMENT);
+  const [custom, setCustom] = useState(preset ? "" : defaultValue);
+
+  return (
+    <Field label="Department">
+      <select className={inputClass} name="department" value={choice} onChange={(event) => setChoice(event.target.value)}>
+        {DEPARTMENTS.map((item) => (
+          <option key={item}>{item}</option>
+        ))}
+        <option value={OTHER_DEPARTMENT}>Other — type a department</option>
+      </select>
+      {choice === OTHER_DEPARTMENT ? (
+        <input
+          className={`${inputClass} mt-2`}
+          name="customDepartment"
+          value={custom}
+          onChange={(event) => setCustom(event.target.value)}
+          placeholder="Type a department"
+          required
+          minLength={2}
+          maxLength={40}
+        />
+      ) : null}
+    </Field>
+  );
+}
 
 export function CreateEmployeeButton() {
   const [open, setOpen] = useState(false);
@@ -46,13 +75,7 @@ export function CreateEmployeeButton() {
             <input className={inputClass} type="text" name="password" required minLength={8} />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Department">
-              <select className={inputClass} name="department" defaultValue="Engineering">
-                {DEPARTMENTS.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </Field>
+            <DepartmentField />
             <Field label="Job title">
               <input className={inputClass} name="jobTitle" required />
             </Field>
@@ -112,13 +135,7 @@ export function EmployeeEditor({
             <input className={inputClass} type="email" name="email" defaultValue={employee.email} required />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Department">
-              <select className={inputClass} name="department" defaultValue={employee.department}>
-                {DEPARTMENTS.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </Field>
+            <DepartmentField defaultValue={employee.department} />
             <Field label="Status">
               <select className={inputClass} name="status" defaultValue={employee.status}>
                 {EMPLOYEE_STATUSES.map((item) => (

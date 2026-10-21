@@ -11,6 +11,15 @@ export function cleanMultiline(value: FormDataEntryValue | null, max: number) {
     .slice(0, max);
 }
 
+export function cleanDepartment(choice: FormDataEntryValue | null, custom: FormDataEntryValue | null) {
+  const selected = cleanText(choice, 40);
+  const typed = cleanText(custom, 40);
+  const value = selected === "Other" ? typed : selected;
+  if (value.length < 2 || value.length > 40) return null;
+  if (!/^[\p{L}0-9][\p{L}0-9 .&/'()-]*$/u.test(value)) return null;
+  return value;
+}
+
 export function cleanName(value: FormDataEntryValue | null) {
   const name = cleanText(value, 40);
   if (name.length < 2 || !/^[\p{L}][\p{L} .'-]*$/u.test(name)) return null;

@@ -3,7 +3,7 @@ import { AttendanceToggle } from "@/components/attendance-toggle";
 import { PunchLocation } from "@/components/gps-link";
 import { StatusBadge } from "@/components/status-badge";
 import { Field, FilterBar, PageHeader, inputClass, td, th } from "@/components/ui";
-import { ATTENDANCE_STATUSES, DEPARTMENTS } from "@/lib/constants";
+import { ATTENDANCE_STATUSES, departmentOptions } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { ORG_SETTING_ID, WORKPLACE_ID } from "@/lib/geo";
 import { dateKey, fullName, isWeekday, matchesQuery, queryValue, todayKey } from "@/lib/format";
@@ -23,14 +23,20 @@ export default async function AdminAttendancePage({
   const department = queryValue(params.department);
   const status = queryValue(params.status);
   const q = queryValue(params.q);
-  const [employees, workplace, policy] = await Promise.all([
+  const [employees, workplace, policy, storedDepartments] = await Promise.all([
     prisma.user.findMany({
       where: { role: "EMPLOYEE", ...(department ? { department } : {}) },
       orderBy: { firstName: "asc" },
     }),
     prisma.workplace.findUnique({ where: { id: WORKPLACE_ID } }),
     prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } }),
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE" },
+      distinct: ["department"],
+      select: { department: true },
+    }),
   ]);
+  const departments = departmentOptions(storedDepartments.map((row) => row.department));
   const records = await prisma.attendance.findMany({ where: { date: new Date(`${safeDate}T00:00:00.000Z`) } });
   const byUser = new Map(records.map((record) => [record.userId, record]));
   const rows = employees
@@ -70,7 +76,7 @@ export default async function AdminAttendancePage({
         <Field label="Department">
           <select className={inputClass} name="department" defaultValue={department}>
             <option value="">All</option>
-            {DEPARTMENTS.map((item) => <option key={item}>{item}</option>)}
+            {departments.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
         <Field label="Status">

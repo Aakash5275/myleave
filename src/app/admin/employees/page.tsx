@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CreateEmployeeButton } from "@/components/admin-forms";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, inputClass, td, th } from "@/components/ui";
-import { DEPARTMENTS, EMPLOYEE_STATUSES } from "@/lib/constants";
+import { EMPLOYEE_STATUSES, departmentOptions } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { formatDate, fullName, matchesQuery, queryValue } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -19,22 +19,30 @@ export default async function EmployeesPage({
   const q = queryValue(params.q);
   const department = queryValue(params.department);
   const status = queryValue(params.status);
-  const employees = await prisma.user.findMany({
-    where: { role: "EMPLOYEE", ...(department ? { department } : {}), ...(status ? { status } : {}) },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      employeeCode: true,
-      jobTitle: true,
-      department: true,
-      hireDate: true,
-      status: true,
-      remoteClock: true,
-    },
-    orderBy: { firstName: "asc" },
-  });
+  const [employees, storedDepartments] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE", ...(department ? { department } : {}), ...(status ? { status } : {}) },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        employeeCode: true,
+        jobTitle: true,
+        department: true,
+        hireDate: true,
+        status: true,
+        remoteClock: true,
+      },
+      orderBy: { firstName: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { role: "EMPLOYEE" },
+      distinct: ["department"],
+      select: { department: true },
+    }),
+  ]);
+  const departments = departmentOptions(storedDepartments.map((row) => row.department));
   const visible = employees.filter((employee) =>
     matchesQuery(q, [fullName(employee), employee.email, employee.employeeCode, employee.jobTitle, employee.department]),
   );
@@ -49,7 +57,7 @@ export default async function EmployeesPage({
         <Field label="Department">
           <select className={inputClass} name="department" defaultValue={department}>
             <option value="">All</option>
-            {DEPARTMENTS.map((item) => <option key={item}>{item}</option>)}
+            {departments.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
         <Field label="Status">

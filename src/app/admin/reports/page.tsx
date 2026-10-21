@@ -1,8 +1,9 @@
 import { PrintButton } from "@/components/admin-forms";
 import { Field, FilterBar, PageHeader, Panel, Stat, inputClass } from "@/components/ui";
-import { DEPARTMENTS } from "@/lib/constants";
+import { departmentOptions } from "@/lib/constants";
 import { getSessionClaims, requireUser } from "@/lib/auth";
 import { formatMoney, formatMonth, monthKeys, queryValue, todayKey } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
 import { loadReport } from "@/server/home";
 
 export const metadata = { title: "Reports" };
@@ -17,7 +18,7 @@ export default async function ReportsPage({
   const monthValue = queryValue(params.month) || todayKey().slice(0, 7);
   const department = queryValue(params.department);
   const range = monthKeys(monthValue) ?? monthKeys(todayKey().slice(0, 7))!;
-  const [, report] = await Promise.all([
+  const [, report, storedDepartments] = await Promise.all([
     requireUser("ADMIN"),
     claims?.role === "ADMIN"
       ? loadReport(
@@ -29,11 +30,15 @@ export default async function ReportsPage({
           range.month,
         )
       : Promise.resolve(null),
+    claims?.role === "ADMIN"
+      ? prisma.user.findMany({ where: { role: "EMPLOYEE" }, distinct: ["department"], select: { department: true } })
+      : Promise.resolve([]),
   ]);
   if (!report) return null;
   const { people, attendance, leaves, hr, docs } = report;
+  const departments = departmentOptions(storedDepartments.map((row) => row.department));
 
-  const headcount = DEPARTMENTS.filter((item) => !department || item === department).map((item) => ({
+  const headcount = departments.filter((item) => !department || item === department).map((item) => ({
     label: item,
     value: people.filter((person) => person.department === item && person.status === "Active").length,
   }));
@@ -63,7 +68,7 @@ export default async function ReportsPage({
         <Field label="Department">
           <select className={inputClass} name="department" defaultValue={department}>
             <option value="">All departments</option>
-            {DEPARTMENTS.map((item) => <option key={item}>{item}</option>)}
+            {departments.map((item) => <option key={item}>{item}</option>)}
           </select>
         </Field>
       </FilterBar>

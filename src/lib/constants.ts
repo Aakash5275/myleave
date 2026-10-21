@@ -7,6 +7,14 @@ export const DEPARTMENTS = [
   "Operations",
 ] as const;
 
+export const OTHER_DEPARTMENT = "Other";
+
+export function departmentOptions(extra: string[] = []) {
+  const known = new Set<string>(DEPARTMENTS);
+  const custom = extra.filter((item) => item && !known.has(item)).sort((a, b) => a.localeCompare(b));
+  return [...DEPARTMENTS, ...custom];
+}
+
 export const LEAVE_TYPES = ["Annual", "Sick", "Casual", "Unpaid"] as const;
 
 export const LEAVE_ALLOWANCE: Record<(typeof LEAVE_TYPES)[number], number> = {

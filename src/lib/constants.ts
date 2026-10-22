@@ -15,14 +15,13 @@ export function departmentOptions(extra: string[] = []) {
   return [...DEPARTMENTS, ...custom];
 }
 
-export const LEAVE_TYPES = ["Annual", "Sick", "Casual", "Unpaid"] as const;
+export const LEAVE_TYPES = ["Unpaid"] as const;
 
 export const LEAVE_ALLOWANCE: Record<(typeof LEAVE_TYPES)[number], number> = {
-  Annual: 18,
-  Sick: 12,
-  Casual: 6,
   Unpaid: 0,
 };
+
+export const ACCOUNT_ROLES = ["EMPLOYEE", "MANAGER"] as const;
 
 export const REQUEST_STATUSES = [
   "Pending",

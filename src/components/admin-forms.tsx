@@ -51,7 +51,49 @@ function DepartmentField({ defaultValue = "Engineering" }: { defaultValue?: stri
   );
 }
 
-export function CreateEmployeeButton() {
+function AccessFields({
+  role = "EMPLOYEE",
+  managerId = "",
+  managers,
+}: {
+  role?: string;
+  managerId?: string;
+  managers: { id: string; name: string }[];
+}) {
+  const [account, setAccount] = useState(role === "MANAGER" ? "MANAGER" : "EMPLOYEE");
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Field label="Access">
+        <select className={inputClass} name="role" value={account} onChange={(event) => setAccount(event.target.value)}>
+          <option value="EMPLOYEE">Employee</option>
+          <option value="MANAGER">Manager</option>
+        </select>
+      </Field>
+      {account === "EMPLOYEE" ? (
+        <Field label="Reports to">
+          <select className={inputClass} name="managerId" defaultValue={managerId}>
+            <option value="">No manager</option>
+            {managers.map((manager) => (
+              <option key={manager.id} value={manager.id}>{manager.name}</option>
+            ))}
+          </select>
+        </Field>
+      ) : (
+        <p className="self-end text-sm text-mist">A manager can add and approve attendance for their own team.</p>
+      )}
+    </div>
+  );
+}
+
+export function CreateEmployeeButton({
+  managers = [],
+  action = createEmployee,
+  showAccess = true,
+}: {
+  managers?: { id: string; name: string }[];
+  action?: typeof createEmployee;
+  showAccess?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -59,7 +101,7 @@ export function CreateEmployeeButton() {
         Add employee
       </button>
       <Modal open={open} title="Add employee" onClose={() => setOpen(false)}>
-        <ActionForm action={createEmployee} submitLabel="Create account" resetOnSuccess onSuccess={() => setOpen(false)}>
+        <ActionForm action={action} submitLabel="Create account" resetOnSuccess onSuccess={() => setOpen(false)}>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="First name">
               <input className={inputClass} name="firstName" required />
@@ -91,6 +133,7 @@ export function CreateEmployeeButton() {
           <Field label="Phone">
             <input className={inputClass} name="phone" />
           </Field>
+          {showAccess ? <AccessFields managers={managers} /> : null}
         </ActionForm>
       </Modal>
     </>
@@ -99,6 +142,10 @@ export function CreateEmployeeButton() {
 
 export function EmployeeEditor({
   employee,
+  managers = [],
+  action = updateEmployee,
+  showAccess = true,
+  showSalary = true,
 }: {
   employee: {
     id: string;
@@ -115,13 +162,19 @@ export function EmployeeEditor({
     status: string;
     remoteClock: boolean;
     salary: number;
+    role?: string;
+    managerId?: string;
   };
+  managers?: { id: string; name: string }[];
+  action?: typeof updateEmployee;
+  showAccess?: boolean;
+  showSalary?: boolean;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-base font-semibold">Employment record</h2>
-        <ActionForm action={updateEmployee} submitLabel="Save changes">
+        <ActionForm action={action} submitLabel="Save changes">
           <input type="hidden" name="id" value={employee.id} />
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="First name">
@@ -151,10 +204,15 @@ export function EmployeeEditor({
             <Field label="Hire date">
               <input className={inputClass} type="date" name="hireDate" defaultValue={employee.hireDate} required />
             </Field>
-            <Field label="Monthly salary (INR)">
-              <input className={inputClass} type="number" name="salary" min={0} defaultValue={employee.salary} required />
-            </Field>
+            {showSalary ? (
+              <Field label="Monthly salary (INR)">
+                <input className={inputClass} type="number" name="salary" min={0} defaultValue={employee.salary} required />
+              </Field>
+            ) : null}
           </div>
+          {showAccess ? (
+            <AccessFields role={employee.role} managerId={employee.managerId} managers={managers} />
+          ) : null}
           <label className="flex items-start gap-2 text-sm">
             <input className="mt-1" type="checkbox" name="remoteClock" defaultChecked={employee.remoteClock} />
             <span>Allow check-in and check-out from anywhere. GPS and the time are still saved.</span>
@@ -175,7 +233,7 @@ export function EmployeeEditor({
           </div>
         </ActionForm>
       </div>
-      <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
+      {showAccess ? <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
         <h2 className="mb-1 text-base font-semibold">Reset password</h2>
         <p className="mb-4 text-sm text-mist">Share the temporary password directly. It is stored only as a hash.</p>
         <ActionForm action={resetEmployeePassword} submitLabel="Reset password" resetOnSuccess>
@@ -187,7 +245,7 @@ export function EmployeeEditor({
             <input className={inputClass} name="confirm" type="text" required />
           </Field>
         </ActionForm>
-      </div>
+      </div> : null}
     </div>
   );
 }

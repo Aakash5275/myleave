@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import {
+  ACCOUNT_ROLES,
   ATTENDANCE_STATUSES,
   EMPLOYEE_STATUSES,
   REQUEST_STATUSES,
@@ -36,6 +37,19 @@ function duplicateMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+async function reportsTo(role: string, raw: FormDataEntryValue | null, selfId?: string) {
+  if (role !== "EMPLOYEE") return null;
+  const managerId = cleanText(raw, 40);
+  if (!managerId) return null;
+  if (managerId === selfId) return { error: "A person cannot report to themselves." };
+  const manager = await prisma.user.findFirst({
+    where: { id: managerId, role: "MANAGER", status: "Active" },
+    select: { id: true },
+  });
+  if (!manager) return { error: "Choose an active manager." };
+  return manager.id;
+}
+
 export async function createEmployee(formData: FormData) {
   await requireUser("ADMIN");
   const firstName = cleanName(formData.get("firstName"));
@@ -55,6 +69,10 @@ export async function createEmployee(formData: FormData) {
   }
   if (!department) return { error: "Choose a department, or type one." };
   if (jobTitle.length < 2) return { error: "Add a job title." };
+  const role = cleanText(formData.get("role"), 20);
+  if (!isOneOf(role, ACCOUNT_ROLES)) return { error: "Choose Employee or Manager." };
+  const managerId = await reportsTo(role, formData.get("managerId"));
+  if (typeof managerId !== "string" && managerId !== null) return managerId;
 
   const codes = await prisma.user.findMany({ select: { employeeCode: true } });
   const nextNumber =
@@ -68,7 +86,8 @@ export async function createEmployee(formData: FormData) {
       data: {
         email,
         passwordHash: await bcrypt.hash(password, 12),
-        role: "EMPLOYEE",
+        role,
+        managerId,
         employeeCode: `ML-${nextNumber}`,
         firstName,
         lastName,
@@ -82,9 +101,11 @@ export async function createEmployee(formData: FormData) {
     await ensureBalances(employee.id);
     await notify(employee.id, {
       title: "Welcome to MyLeave",
-      message: "Your HR profile is ready. Sign in with the password shared by your admin.",
+      message: role === "MANAGER"
+        ? "Your manager account is ready. Sign in with the password shared by your admin."
+        : "Your HR profile is ready. Sign in with the password shared by your admin.",
       kind: "account",
-      href: "/employee/profile",
+      href: role === "MANAGER" ? "/manager" : "/employee/profile",
     });
   } catch (error) {
     return { error: duplicateMessage(error, "Could not create the employee.") };
@@ -110,9 +131,13 @@ export async function updateEmployee(formData: FormData) {
   const status = cleanText(formData.get("status"), 20);
   const remoteClock = formData.get("remoteClock") === "on";
   const salary = parseAmount(formData.get("salary"));
-  const employee = await prisma.user.findFirst({ where: { id, role: "EMPLOYEE" } });
+  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER"] } } });
   if (!employee) return { error: "Employee not found." };
   if (!department) return { error: "Choose a department, or type one." };
+  const role = cleanText(formData.get("role"), 20);
+  if (!isOneOf(role, ACCOUNT_ROLES)) return { error: "Choose Employee or Manager." };
+  const managerId = await reportsTo(role, formData.get("managerId"), id);
+  if (typeof managerId !== "string" && managerId !== null) return managerId;
   if (
     !firstName ||
     !lastName ||
@@ -147,8 +172,13 @@ export async function updateEmployee(formData: FormData) {
         status,
         remoteClock,
         salary,
+        role,
+        managerId,
       },
     });
+    if (employee.role === "MANAGER" && role === "EMPLOYEE") {
+      await prisma.user.updateMany({ where: { managerId: id }, data: { managerId: null } });
+    }
   } catch (error) {
     return { error: duplicateMessage(error, "Could not update the employee.") };
   }
@@ -162,7 +192,7 @@ export async function resetEmployeePassword(formData: FormData) {
   const id = cleanText(formData.get("id"), 40);
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  const employee = await prisma.user.findFirst({ where: { id, role: "EMPLOYEE" } });
+  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER"] } } });
   if (!employee) return { error: "Employee not found." };
   if (!validPassword(password)) {
     return { error: "Use 8–72 characters with at least one letter and one number." };
@@ -176,7 +206,7 @@ export async function resetEmployeePassword(formData: FormData) {
     title: "Password reset",
     message: "An admin reset your password. Use the new temporary password to sign in.",
     kind: "account",
-    href: "/employee/profile",
+    href: employee.role === "MANAGER" ? "/manager" : "/employee/profile",
   });
   refresh();
   return {};

@@ -19,9 +19,9 @@ export default async function EmployeesPage({
   const q = queryValue(params.q);
   const department = queryValue(params.department);
   const status = queryValue(params.status);
-  const [employees, storedDepartments] = await Promise.all([
+  const [employees, storedDepartments, managers] = await Promise.all([
     prisma.user.findMany({
-      where: { role: "EMPLOYEE", ...(department ? { department } : {}), ...(status ? { status } : {}) },
+      where: { role: { in: ["EMPLOYEE", "MANAGER"] }, ...(department ? { department } : {}), ...(status ? { status } : {}) },
       select: {
         id: true,
         firstName: true,
@@ -33,13 +33,19 @@ export default async function EmployeesPage({
         hireDate: true,
         status: true,
         remoteClock: true,
+        role: true,
       },
       orderBy: { firstName: "asc" },
     }),
     prisma.user.findMany({
-      where: { role: "EMPLOYEE" },
+      where: { role: { in: ["EMPLOYEE", "MANAGER"] } },
       distinct: ["department"],
       select: { department: true },
+    }),
+    prisma.user.findMany({
+      where: { role: "MANAGER", status: "Active" },
+      select: { id: true, firstName: true, lastName: true },
+      orderBy: { firstName: "asc" },
     }),
   ]);
   const departments = departmentOptions(storedDepartments.map((row) => row.department));
@@ -49,7 +55,7 @@ export default async function EmployeesPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="People" title="Employees" description="Add people, keep their records current, and open a profile for attendance, leave, and pay." action={<CreateEmployeeButton />} />
+      <PageHeader eyebrow="People" title="Employees" description="Add people, keep their records current, and open a profile for attendance, leave, and pay." action={<CreateEmployeeButton managers={managers.map((manager) => ({ id: manager.id, name: fullName(manager) }))} />} />
       <FilterBar clearHref="/admin/employees">
         <Field label="Search">
           <input className={inputClass} name="q" defaultValue={q} placeholder="Name, email, or ID" />
@@ -73,7 +79,8 @@ export default async function EmployeesPage({
             <thead>
               <tr>
                 <th className={th}>Employee</th>
-                <th className={th}>Role</th>
+                <th className={th}>Job</th>
+                <th className={th}>Access</th>
                 <th className={th}>Department</th>
                 <th className={th}>Hired</th>
                 <th className={th}>Status</th>
@@ -87,6 +94,7 @@ export default async function EmployeesPage({
                     <p className="text-mist">{employee.employeeCode} · {employee.email}</p>
                   </td>
                   <td className={td}>{employee.jobTitle}</td>
+                  <td className={td}>{employee.role === "MANAGER" ? "Manager" : "Employee"}</td>
                   <td className={td}>{employee.department}</td>
                   <td className={td}>{formatDate(employee.hireDate)}</td>
                   <td className={td}>

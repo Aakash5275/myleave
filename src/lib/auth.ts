@@ -2,7 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { COOKIE, readSession, type SessionRole } from "@/lib/session";
+import { COOKIE, homeFor, readSession, type SessionRole } from "@/lib/session";
 
 export const getSessionClaims = cache(async function getSessionClaims() {
   const jar = await cookies();
@@ -60,7 +60,7 @@ export const getSessionUser = cache(async function getSessionUser() {
         WHERE n."userId" = u.id
           AND n.read = false
           AND (
-            u.role = 'ADMIN'
+            u.role IN ('ADMIN', 'MANAGER')
             OR COALESCE(o."attendanceEnabled", true)
             OR n.kind <> 'attendance'
           )
@@ -79,7 +79,7 @@ export async function requireUser(role?: SessionRole) {
   const user = await getSessionUser();
   if (!user) redirect("/logout");
   if (role && user.role !== role) {
-    redirect(user.role === "ADMIN" ? "/admin" : "/employee");
+    redirect(homeFor(user.role as SessionRole));
   }
   return user;
 }

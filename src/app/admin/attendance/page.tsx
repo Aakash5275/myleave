@@ -95,6 +95,7 @@ export default async function AdminAttendancePage({
               <th className={th}>In</th>
               <th className={th}>Out</th>
               <th className={th}>Status</th>
+              <th className={th}>Approval</th>
               <th className={th}>Record</th>
             </tr>
           </thead>
@@ -112,6 +113,9 @@ export default async function AdminAttendancePage({
                   <PunchLocation time={record?.checkOut ?? null} latitude={record?.checkOutLat ?? null} longitude={record?.checkOutLng ?? null} accuracy={record?.checkOutAccuracy ?? null} />
                 </td>
                 <td className={td}><StatusBadge value={record?.status ?? "Not marked"} /></td>
+                <td className={td}>
+                  {record?.approvedAt ? <StatusBadge value="Approved" /> : record ? <StatusBadge value="Pending approval" /> : <span className="text-mist">—</span>}
+                </td>
                 <td className={td}>
                   <AttendanceEditor
                     userId={employee.id}

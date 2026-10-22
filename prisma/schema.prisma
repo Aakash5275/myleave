@@ -27,10 +27,14 @@ model User {
   status         String   @default("Active")
   remoteClock    Boolean  @default(false)
   salary         Int      @default(0)
+  managerId      String?
+  manager        User?    @relation("Team", fields: [managerId], references: [id], onDelete: SetNull)
+  team           User[]   @relation("Team")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   attendances      Attendance[]
+  approvedAttendance Attendance[] @relation("AttendanceApproval")
   leaveBalances    LeaveBalance[]
   leaveRequests    LeaveRequest[]    @relation("LeaveEmployee")
   leavesReviewed   LeaveRequest[]    @relation("LeaveReviewer")
@@ -41,6 +45,8 @@ model User {
   docsReviewed     DocumentRequest[] @relation("DocReviewer")
   announcements    Announcement[]
   notifications    Notification[]
+
+  @@index([managerId])
 }
 
 model LeaveBalance {
@@ -70,6 +76,9 @@ model Attendance {
   checkOutAccuracy Float?
   status           String
   notes            String   @default("")
+  approvedAt       DateTime?
+  approvedById     String?
+  approvedBy       User?    @relation("AttendanceApproval", fields: [approvedById], references: [id], onDelete: SetNull)
 
   @@unique([userId, date])
   @@index([date])

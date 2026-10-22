@@ -25,7 +25,7 @@ import { logout } from "@/server/auth-actions";
 type ShellUser = {
   name: string;
   email: string;
-  role: "ADMIN" | "EMPLOYEE";
+  role: "ADMIN" | "MANAGER" | "EMPLOYEE";
   title: string;
   department: string;
   code: string;
@@ -42,6 +42,13 @@ const employeeLinks = [
   { href: "/employee/documents", label: "Documents", icon: FolderOpen },
   { href: "/employee/history", label: "History", icon: History },
   { href: "/employee/notifications", label: "Notifications", icon: Bell },
+];
+
+const managerLinks = [
+  { href: "/manager", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/manager/team", label: "Team", icon: Users },
+  { href: "/manager/attendance", label: "Attendance", icon: Clock3 },
+  { href: "/manager/notifications", label: "Notifications", icon: Bell },
 ];
 
 const adminLinks = [
@@ -76,9 +83,11 @@ export function AppShell({
   const pathname = usePathname();
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath === pathname;
-  const links = (user.role === "ADMIN" ? adminLinks : employeeLinks).filter(
+  const links = (user.role === "ADMIN" ? adminLinks : user.role === "MANAGER" ? managerLinks : employeeLinks).filter(
     (link) => showAttendance || link.href !== "/employee/attendance",
   );
+  const home = user.role === "ADMIN" ? "/admin" : user.role === "MANAGER" ? "/manager" : "/employee";
+  const roleLabel = user.role === "ADMIN" ? "Admin" : user.role === "MANAGER" ? "Manager" : "Employee";
 
   return (
     <div className="min-h-screen bg-sand text-ink">
@@ -93,11 +102,11 @@ export function AppShell({
         className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-panel text-white transition-transform print:hidden ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         <div className="flex items-center justify-between px-5 py-5">
-          <Link href={user.role === "ADMIN" ? "/admin" : "/employee"} className="flex items-center gap-3">
+          <Link href={home} className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal text-sm font-bold">ML</span>
             <span>
               <span className="block text-base font-semibold">MyLeave</span>
-              <span className="block text-xs text-white/60">{user.role === "ADMIN" ? "Admin" : "Employee"}</span>
+              <span className="block text-xs text-white/60">{roleLabel}</span>
             </span>
           </Link>
           <button className="rounded-lg p-2 text-white/70 md:hidden" onClick={() => setOpenPath(null)} aria-label="Close">
@@ -143,7 +152,7 @@ export function AppShell({
           </button>
           <p className="text-sm text-mist">Hello, {user.firstName}</p>
           <Link
-            href={user.role === "ADMIN" ? "/admin/notifications" : "/employee/notifications"}
+            href={`${home}/notifications`}
             className="relative ml-auto rounded-xl border border-line bg-white p-2"
             aria-label="Notifications"
           >

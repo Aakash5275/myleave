@@ -20,7 +20,7 @@ import {
   validPassword,
 } from "@/lib/validate";
 import { distanceMeters, ORG_SETTING_ID, parseGps, WORKPLACE_ID } from "@/lib/geo";
-import { availableDays, ensureBalances, syncLeaveAcceptance } from "@/server/leave";
+import { ensureBalances, syncLeaveAcceptance } from "@/server/leave";
 import { notifyAdmins, refresh } from "@/server/notify";
 import { notifyLeaveRequested } from "@/server/slack";
 
@@ -129,14 +129,6 @@ export async function applyLeave(formData: FormData) {
 
   const year = Number(start.slice(0, 4));
   await ensureBalances(user.id, year);
-  if (type !== "Unpaid") {
-    const left = await availableDays(user.id, type, year);
-    if (left < days) {
-      return {
-        error: `Not enough ${type.toLowerCase()} leave. ${Math.max(0, left)} day(s) available.`,
-      };
-    }
-  }
 
   await prisma.leaveRequest.create({
     data: {

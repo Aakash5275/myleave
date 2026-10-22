@@ -72,7 +72,7 @@ export async function loadEmployeeHome(userId: string, today: string, year: numb
       ) AS "presentDays",
       (
         SELECT COUNT(*)::int FROM "LeaveRequest"
-        WHERE "userId" = ${userId} AND status IN ('Pending', 'In Progress')
+        WHERE "userId" = ${userId} AND type = 'Unpaid' AND status IN ('Pending', 'In Progress')
       ) AS "pendingLeave",
       (
         SELECT COUNT(*)::int FROM "HrRequest"
@@ -87,7 +87,7 @@ export async function loadEmployeeHome(userId: string, today: string, year: numb
           'id', b.id, 'type', b.type, 'total', b.total, 'used', b.used
         ) ORDER BY b.type), '[]'::json)
         FROM "LeaveBalance" b
-        WHERE b."userId" = ${userId} AND b.year = ${year}
+        WHERE b."userId" = ${userId} AND b.year = ${year} AND b.type = 'Unpaid'
       ) AS balances,
       (
         SELECT COALESCE(json_agg(json_build_object(
@@ -96,7 +96,7 @@ export async function loadEmployeeHome(userId: string, today: string, year: numb
         FROM (
           SELECT id, type, "startDate", "endDate", days, status, "createdAt"
           FROM "LeaveRequest"
-          WHERE "userId" = ${userId}
+          WHERE "userId" = ${userId} AND type = 'Unpaid'
           ORDER BY "createdAt" DESC
           LIMIT 5
         ) s

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, inputClass } from "@/components/ui";
-import { REQUEST_STATUSES } from "@/lib/constants";
+import { LEAVE_TYPES, REQUEST_STATUSES } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatDateTime, matchesQuery, queryValue } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +19,7 @@ export default async function HistoryPage({
   const status = queryValue(params.status);
   const kind = queryValue(params.kind);
   const [leaves, hr, docs] = await Promise.all([
-    prisma.leaveRequest.findMany({ where: { userId: user.id } }),
+    prisma.leaveRequest.findMany({ where: { userId: user.id, type: { in: [...LEAVE_TYPES] } } }),
     prisma.hrRequest.findMany({ where: { userId: user.id } }),
     prisma.documentRequest.findMany({ where: { userId: user.id } }),
   ]);

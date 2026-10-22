@@ -167,7 +167,7 @@ export function LeaveApplyButton() {
       <Modal open={open} title="Apply for leave" onClose={() => setOpen(false)}>
         <ActionForm action={applyLeave} submitLabel="Submit request" resetOnSuccess onSuccess={() => setOpen(false)}>
           <Field label="Type">
-            <select name="type" className={inputClass} defaultValue="Annual">
+            <select name="type" className={inputClass} defaultValue="Unpaid">
               {LEAVE_TYPES.map((type) => (
                 <option key={type}>{type}</option>
               ))}

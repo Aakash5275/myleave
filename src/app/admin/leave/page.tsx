@@ -23,7 +23,7 @@ export default async function AdminLeavePage({
   const year = yearOf();
   const [requests, balances] = await Promise.all([
     prisma.leaveRequest.findMany({
-      where: { ...(status ? { status } : {}), ...(type ? { type } : {}) },
+      where: { type: { in: [...LEAVE_TYPES] }, ...(status ? { status } : {}), ...(type ? { type } : {}) },
       select: {
         id: true,
         userId: true,

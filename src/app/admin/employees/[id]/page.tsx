@@ -13,7 +13,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   await requireUser("ADMIN");
   const { id } = await params;
   const employee = await prisma.user.findFirst({
-    where: { id, role: "EMPLOYEE" },
+    where: { id, role: { in: ["EMPLOYEE", "MANAGER"] } },
     select: {
       id: true,
       employeeCode: true,
@@ -30,6 +30,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       status: true,
       remoteClock: true,
       salary: true,
+      role: true,
+      managerId: true,
       attendances: { orderBy: { date: "desc" }, take: 8, select: { id: true, date: true, status: true } },
       leaveRequests: { orderBy: { createdAt: "desc" }, take: 6, select: { id: true, type: true, days: true, status: true } },
       payslips: { orderBy: [{ year: "desc" }, { month: "desc" }], take: 6, select: { id: true, year: true, month: true, netPay: true } },
@@ -38,6 +40,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     },
   });
   if (!employee) notFound();
+  const managers = await prisma.user.findMany({
+    where: { role: "MANAGER", status: "Active", id: { not: employee.id } },
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: { firstName: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -63,7 +70,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           status: employee.status,
           remoteClock: employee.remoteClock,
           salary: employee.salary,
+          role: employee.role,
+          managerId: employee.managerId ?? "",
         }}
+        managers={managers.map((manager) => ({ id: manager.id, name: `${manager.firstName} ${manager.lastName}` }))}
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Recent attendance">

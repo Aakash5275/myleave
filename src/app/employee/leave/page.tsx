@@ -21,12 +21,12 @@ export default async function LeavePage({
   const year = yearOf();
   const [balances, requests] = await Promise.all([
     prisma.leaveBalance.findMany({
-      where: { userId: user.id, year },
+      where: { userId: user.id, year, type: { in: [...LEAVE_TYPES] } },
       select: { id: true, type: true, total: true, used: true },
       orderBy: { type: "asc" },
     }),
     prisma.leaveRequest.findMany({
-      where: { userId: user.id, ...(status ? { status } : {}), ...(type ? { type } : {}) },
+      where: { userId: user.id, type: { in: [...LEAVE_TYPES] }, ...(status ? { status } : {}), ...(type ? { type } : {}) },
       select: { id: true, type: true, startDate: true, endDate: true, days: true, reason: true, status: true, adminNote: true },
       orderBy: { createdAt: "desc" },
     }),

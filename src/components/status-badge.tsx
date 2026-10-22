@@ -20,6 +20,7 @@ const tones: Record<string, string> = {
   Medium: "bg-amber-50 text-amber-800 ring-amber-200",
   Low: "bg-slate-100 text-slate-700 ring-slate-200",
   "Not marked": "bg-stone-100 text-stone-600 ring-stone-200",
+  "Pending approval": "bg-amber-50 text-amber-800 ring-amber-200",
 };
 
 export function StatusBadge({ value }: { value: string }) {

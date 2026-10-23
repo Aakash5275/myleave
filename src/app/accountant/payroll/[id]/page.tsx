@@ -34,7 +34,7 @@ export default async function AccountantPayslipPage({ params }: { params: Promis
       <div className="grid items-start gap-4 print:hidden xl:grid-cols-2">
         <div className="min-w-0 rounded-2xl border border-line bg-white p-5 shadow-sm">
           <h2 className="mb-1 text-base font-semibold">Edit payslip</h2>
-          <p className="mb-4 text-sm text-mist">Change the employee, period, basic, allowances, overtime, deductions, tax, and notes. Then save a draft or issue it.</p>
+          <p className="mb-4 text-sm text-mist">Change the employee, period, basic, allowances, tax, and notes. Then save a draft or issue it.</p>
           <PayslipForm
             employees={employees.map((employee) => ({
               id: employee.id,
@@ -48,8 +48,6 @@ export default async function AccountantPayslipPage({ params }: { params: Promis
               year: slip.year,
               basic: slip.basic,
               allowances: slip.allowances,
-              overtime: slip.overtime,
-              deductions: slip.deductions,
               tax: slip.tax,
               notes: slip.notes,
             }}

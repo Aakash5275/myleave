@@ -47,8 +47,6 @@ export default async function AdminPayslipPage({ params }: { params: Promise<{ i
               year: slip.year,
               basic: slip.basic,
               allowances: slip.allowances,
-              overtime: slip.overtime,
-              deductions: slip.deductions,
               tax: slip.tax,
               notes: slip.notes,
             }}

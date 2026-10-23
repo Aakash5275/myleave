@@ -12,8 +12,6 @@ export type PayDraft = {
   year: number;
   basic: number;
   allowances: number;
-  overtime: number;
-  deductions: number;
   tax: number;
   notes: string;
   found: string[];
@@ -86,8 +84,6 @@ export function extractPay(text: string, people: PayPerson[], preferredId = ""):
   };
   const basic = take("Basic", /basic(?:\s+pay|\s+salary)?/i);
   const allowances = take("Allowances", /allowances?|\bhra\b|house\s+rent/i);
-  const overtime = take("Overtime", /overtime|\bot\s+pay\b/i);
-  const deductions = take("Deductions", /deductions?|provident\s+fund|\bpf\b/i);
   const tax = take("Tax", /(?:income\s+)?tax|\btds\b/i);
   if (coded) found.push("Employee ID");
   else if (!preferredId && named) found.push("Name");
@@ -99,8 +95,6 @@ export function extractPay(text: string, people: PayPerson[], preferredId = ""):
     year: period.year ?? now.getFullYear(),
     basic: basic ?? person?.salary ?? 0,
     allowances: allowances ?? 0,
-    overtime: overtime ?? 0,
-    deductions: deductions ?? 0,
     tax: tax ?? 0,
     notes: "",
     found,

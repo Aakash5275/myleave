@@ -27,11 +27,8 @@ export default async function AccountantReportsPage({
       select: {
         id: true,
         status: true,
-        netPay: true,
         basic: true,
         allowances: true,
-        overtime: true,
-        deductions: true,
         tax: true,
         user: { select: { firstName: true, lastName: true, employeeCode: true, department: true } },
       },
@@ -46,8 +43,7 @@ export default async function AccountantReportsPage({
   const departments = departmentOptions(storedDepartments.map((row) => row.department));
   const issued = slips.filter((slip) => slip.status === "Issued");
   const drafts = slips.filter((slip) => slip.status === "Draft");
-  const total = (rows: typeof slips, key: "netPay" | "basic" | "allowances" | "overtime" | "deductions" | "tax") =>
-    rows.reduce((sum, slip) => sum + slip[key], 0);
+  const issuedTax = issued.reduce((sum, slip) => sum + slip.tax, 0);
 
   return (
     <div className="space-y-6">
@@ -68,24 +64,21 @@ export default async function AccountantReportsPage({
           </select>
         </Field>
       </FilterBar>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Issued net" value={formatMoney(total(issued, "netPay"))} hint={`${issued.length} issued`} />
-        <Stat label="Draft net" value={formatMoney(total(drafts, "netPay"))} hint={`${drafts.length} draft`} tone="amber" />
-        <Stat label="Issued tax" value={formatMoney(total(issued, "tax"))} />
-        <Stat label="Issued deductions" value={formatMoney(total(issued, "deductions"))} tone="ink" />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Issued net" value={formatMoney(issued.reduce((sum, slip) => sum + slip.basic + slip.allowances - slip.tax, 0))} hint={`${issued.length} issued`} />
+        <Stat label="Draft net" value={formatMoney(drafts.reduce((sum, slip) => sum + slip.basic + slip.allowances - slip.tax, 0))} hint={`${drafts.length} draft`} tone="amber" />
+        <Stat label="Issued tax" value={formatMoney(issuedTax)} />
       </div>
       <Panel title="Payslips">
         {slips.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr>
                   <th className={th}>Employee</th>
                   <th className={th}>Department</th>
                   <th className={th}>Basic</th>
                   <th className={th}>Allowances</th>
-                  <th className={th}>Overtime</th>
-                  <th className={th}>Deductions</th>
                   <th className={th}>Tax</th>
                   <th className={th}>Net</th>
                   <th className={th}>Status</th>
@@ -98,10 +91,8 @@ export default async function AccountantReportsPage({
                     <td className={td}>{slip.user.department}</td>
                     <td className={td}>{formatMoney(slip.basic)}</td>
                     <td className={td}>{formatMoney(slip.allowances)}</td>
-                    <td className={td}>{formatMoney(slip.overtime)}</td>
-                    <td className={td}>{formatMoney(slip.deductions)}</td>
                     <td className={td}>{formatMoney(slip.tax)}</td>
-                    <td className={td}>{formatMoney(slip.netPay)}</td>
+                    <td className={td}>{formatMoney(slip.basic + slip.allowances - slip.tax)}</td>
                     <td className={td}>{slip.status}</td>
                   </tr>
                 ))}

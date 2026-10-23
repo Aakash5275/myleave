@@ -10,10 +10,7 @@ export function PayslipSheet({
     year: number;
     basic: number;
     allowances: number;
-    overtime: number;
-    deductions: number;
     tax: number;
-    netPay: number;
     status: string;
     notes: string;
   };
@@ -21,12 +18,8 @@ export function PayslipSheet({
   const earnings = [
     ["Basic", slip.basic],
     ["Allowances", slip.allowances],
-    ["Overtime", slip.overtime],
   ] as const;
-  const deductions = [
-    ["Deductions", slip.deductions],
-    ["Tax", slip.tax],
-  ] as const;
+  const netPay = slip.basic + slip.allowances - slip.tax;
 
   return (
     <article className="min-w-0 rounded-2xl border border-line bg-white p-6 shadow-sm print:border-0 print:shadow-none">
@@ -56,20 +49,18 @@ export function PayslipSheet({
           </ul>
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold">Deductions</h3>
+          <h3 className="mb-2 text-sm font-semibold">Tax</h3>
           <ul className="space-y-2 text-sm">
-            {deductions.map(([label, amount]) => (
-              <li key={label} className="flex justify-between gap-4">
-                <span className="text-mist">{label}</span>
-                <span>{formatMoney(amount)}</span>
-              </li>
-            ))}
+            <li className="flex justify-between gap-4">
+              <span className="text-mist">Tax</span>
+              <span>{formatMoney(slip.tax)}</span>
+            </li>
           </ul>
         </div>
       </div>
       <div className="mt-6 flex items-center justify-between rounded-2xl bg-sand px-4 py-3">
         <span className="font-semibold">Net pay</span>
-        <span className="text-xl font-semibold">{formatMoney(slip.netPay)}</span>
+        <span className="text-xl font-semibold">{formatMoney(netPay)}</span>
       </div>
       {slip.notes ? <p className="mt-4 text-sm text-mist">{slip.notes}</p> : null}
     </article>

@@ -65,7 +65,7 @@ export default async function AccountantEmployeePage({ params }: { params: Promi
           <PayImport employees={options} userId={person.id} />
         </Panel>
       </div>
-      <Panel title="Payslips" description="Open any slip to edit basic, allowances, overtime, deductions, tax, notes, and the period.">
+      <Panel title="Payslips" description="Open any slip to edit basic, allowances, tax, notes, and the period.">
         {person.payslips.length ? (
           <table className="w-full text-left text-sm">
             <thead>

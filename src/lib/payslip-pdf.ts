@@ -14,8 +14,6 @@ export type PayslipFigures = {
   year: number;
   basic: number;
   allowances: number;
-  overtime: number;
-  deductions: number;
   tax: number;
   netPay: number;
   status: string;
@@ -35,8 +33,6 @@ export const SAMPLE_PAYSLIP: { employee: PayslipPerson; slip: PayslipFigures } =
     year: 2026,
     basic: 40000,
     allowances: 5000,
-    overtime: 2000,
-    deductions: 2000,
     tax: 1500,
     netPay: 43500,
     status: "Standard",
@@ -69,8 +65,7 @@ export async function buildPayslipPdf(employee: PayslipPerson, slip: PayslipFigu
   const mist = rgb(0.38, 0.42, 0.48);
   const teal = rgb(0.05, 0.45, 0.45);
   const line = rgb(0.86, 0.88, 0.9);
-  const gross = slip.basic + slip.allowances + slip.overtime;
-  const taken = slip.deductions + slip.tax;
+  const gross = slip.basic + slip.allowances;
 
   page.drawRectangle({ x: 36, y: 36, width: 523, height: 770, borderColor: line, borderWidth: 1 });
   page.drawText("MYLEAVE", { x: 56, y: 760, size: 11, font: bold, color: teal });
@@ -96,13 +91,9 @@ export async function buildPayslipPdf(employee: PayslipPerson, slip: PayslipFigu
     ["Earnings", "", true],
     ["Basic", inr(slip.basic), false],
     ["Allowances", inr(slip.allowances), false],
-    ["Overtime", inr(slip.overtime), false],
     ["Gross", inr(gross), true],
     ["", "", false],
-    ["Deductions", "", true],
-    ["Deductions", inr(slip.deductions), false],
-    ["Tax", inr(slip.tax), false],
-    ["Total deductions", inr(taken), true],
+    ["Tax", inr(slip.tax), true],
   ];
   rows.forEach(([label, value, strong], index) => {
     if (!label) return;

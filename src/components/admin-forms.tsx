@@ -483,8 +483,6 @@ export function PayslipForm({
     year: number;
     basic: number;
     allowances: number;
-    overtime: number;
-    deductions: number;
     tax: number;
     notes: string;
   };
@@ -493,13 +491,8 @@ export function PayslipForm({
   const selected = employees.find((employee) => employee.id === userId);
   const [basic, setBasic] = useState(payslip?.basic ?? selected?.salary ?? 0);
   const [allowances, setAllowances] = useState(payslip?.allowances ?? 0);
-  const [overtime, setOvertime] = useState(payslip?.overtime ?? 0);
-  const [deductions, setDeductions] = useState(payslip?.deductions ?? 0);
   const [tax, setTax] = useState(payslip?.tax ?? 0);
-  const net = useMemo(
-    () => basic + allowances + overtime - deductions - tax,
-    [basic, allowances, overtime, deductions, tax],
-  );
+  const net = useMemo(() => basic + allowances - tax, [basic, allowances, tax]);
 
   return (
     <ActionForm className="@container space-y-3" action={savePayslip} submitLabel="Issue payslip" secondary={<button className={btnSecondary} name="intent" value="draft" type="submit">Save draft</button>}>
@@ -539,12 +532,6 @@ export function PayslipForm({
         </Field>
         <Field label="Allowances" className="min-w-0!">
           <input className={inputClass} type="number" name="allowances" min={0} value={allowances} onChange={(event) => setAllowances(Number(event.target.value))} required />
-        </Field>
-        <Field label="Overtime" className="min-w-0!">
-          <input className={inputClass} type="number" name="overtime" min={0} value={overtime} onChange={(event) => setOvertime(Number(event.target.value))} required />
-        </Field>
-        <Field label="Deductions" className="min-w-0!">
-          <input className={inputClass} type="number" name="deductions" min={0} value={deductions} onChange={(event) => setDeductions(Number(event.target.value))} required />
         </Field>
         <Field label="Tax" className="min-w-0!">
           <input className={inputClass} type="number" name="tax" min={0} value={tax} onChange={(event) => setTax(Number(event.target.value))} required />

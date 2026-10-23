@@ -22,31 +22,19 @@ export async function GET(request: Request) {
   const issued = await prisma.payslip.findFirst({
     where: { userId: user.id, year: range.year, month: range.month, status: "Issued" },
   });
-  const slip: PayslipFigures = issued
-    ? {
-        month: range.month,
-        year: range.year,
-        basic: issued.basic,
-        allowances: issued.allowances,
-        overtime: issued.overtime,
-        deductions: issued.deductions,
-        tax: issued.tax,
-        netPay: issued.netPay,
-        status: issued.status,
-        notes: issued.notes,
-      }
-    : {
-        month: range.month,
-        year: range.year,
-        basic: user.salary,
-        allowances: 0,
-        overtime: 0,
-        deductions: 0,
-        tax: 0,
-        netPay: user.salary,
-        status: "Standard",
-        notes: "Standard monthly pay from salary.",
-      };
+  const basic = issued?.basic ?? user.salary;
+  const allowances = issued?.allowances ?? 0;
+  const tax = issued?.tax ?? 0;
+  const slip: PayslipFigures = {
+    month: range.month,
+    year: range.year,
+    basic,
+    allowances,
+    tax,
+    netPay: basic + allowances - tax,
+    status: issued?.status ?? "Standard",
+    notes: issued ? issued.notes : "Standard monthly pay from salary.",
+  };
   const bytes = await buildPayslipPdf(user, slip);
   const filename = `payslip-${user.employeeCode}-${range.year}-${String(range.month).padStart(2, "0")}.pdf`;
   return pdfResponse(bytes, filename);

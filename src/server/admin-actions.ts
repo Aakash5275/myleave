@@ -462,26 +462,14 @@ export async function savePayslip(formData: FormData) {
   const year = Number(formData.get("year"));
   const basic = parseAmount(formData.get("basic"));
   const allowances = parseAmount(formData.get("allowances"));
-  const overtime = parseAmount(formData.get("overtime"));
-  const deductions = parseAmount(formData.get("deductions"));
   const tax = parseAmount(formData.get("tax"));
   const notes = cleanMultiline(formData.get("notes"), 400);
   const intent = cleanText(formData.get("intent"), 20);
-  if (
-    basic === null ||
-    allowances === null ||
-    overtime === null ||
-    deductions === null ||
-    tax === null ||
-    month < 1 ||
-    month > 12 ||
-    year < 2000 ||
-    year > 2100
-  ) {
+  if (basic === null || allowances === null || tax === null || month < 1 || month > 12 || year < 2000 || year > 2100) {
     return { error: "Enter a valid period and non-negative amounts." };
   }
-  const netPay = basic + allowances + overtime - deductions - tax;
-  if (netPay < 0) return { error: "Net pay cannot be negative. Check deductions and tax." };
+  const netPay = basic + allowances - tax;
+  if (netPay < 0) return { error: "Net pay cannot be negative. Lower the tax." };
   const employee = await prisma.user.findFirst({ where: { id: userId, role: { in: [...PAYABLE_ROLES] } } });
   if (!employee) return { error: "Choose an employee." };
 
@@ -492,8 +480,8 @@ export async function savePayslip(formData: FormData) {
     year,
     basic,
     allowances,
-    overtime,
-    deductions,
+    overtime: 0,
+    deductions: 0,
     tax,
     netPay,
     notes,

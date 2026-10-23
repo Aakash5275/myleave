@@ -40,7 +40,7 @@ export default async function AccountantHomePage() {
       <PageHeader
         eyebrow="Pay"
         title="Payroll"
-        description={`This month is ${formatMonth(range.year, range.month)}. Issue payslips, or open someone who does not have one yet.`}
+        description={`This month is ${formatMonth(range.year, range.month)}. Issue payslips here, and use the same leave, attendance, pay, and profile tools as an employee.`}
       />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Issued this month" value={formatMoney(issuedTotal)} hint={`${issued.length} payslip(s)`} />

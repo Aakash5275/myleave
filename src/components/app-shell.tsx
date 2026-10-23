@@ -64,6 +64,14 @@ const accountantLinks = [
   { href: "/accountant/employees", label: "Employees", icon: Users },
   { href: "/accountant/payroll", label: "Payslips", icon: Receipt },
   { href: "/accountant/reports", label: "Pay report", icon: BarChart3 },
+  { href: "/employee", label: "My dashboard", icon: LayoutDashboard },
+  { href: "/employee/profile", label: "Profile", icon: UserRound },
+  { href: "/employee/attendance", label: "My attendance", icon: Clock3 },
+  { href: "/employee/leave", label: "Leave", icon: CalendarRange },
+  { href: "/employee/payroll", label: "My payslips", icon: Receipt },
+  { href: "/employee/requests", label: "HR requests", icon: MessagesSquare },
+  { href: "/employee/documents", label: "Documents", icon: FolderOpen },
+  { href: "/employee/history", label: "History", icon: History },
   { href: "/accountant/notifications", label: "Notifications", icon: Bell },
 ];
 

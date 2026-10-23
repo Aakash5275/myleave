@@ -4,7 +4,7 @@ import { requireUser, shellUser } from "@/lib/auth";
 export default async function AccountantLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser("ACCOUNTANT");
   return (
-    <AppShell user={shellUser(user)} unread={user.unread}>
+    <AppShell user={shellUser(user)} unread={user.unread} showAttendance={user.attendanceEnabled}>
       {children}
     </AppShell>
   );

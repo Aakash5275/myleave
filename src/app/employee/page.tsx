@@ -15,7 +15,7 @@ export default async function EmployeeDashboard() {
   const year = Number(today.slice(0, 4));
   const [user, home] = await Promise.all([
     requireSelf(),
-    claims?.role === "EMPLOYEE" || claims?.role === "MANAGER"
+    claims?.role === "EMPLOYEE" || claims?.role === "MANAGER" || claims?.role === "ACCOUNTANT"
       ? loadEmployeeHome(claims.sub, today, year, month.start, month.end)
       : Promise.resolve(null),
   ]);
@@ -29,16 +29,24 @@ export default async function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={user.role === "MANAGER" ? "Manager" : "Employee"}
+        eyebrow={user.role === "MANAGER" ? "Manager" : user.role === "ACCOUNTANT" ? "Accountant" : "Employee"}
         title={`Good to see you, ${user.firstName}`}
         description={
           user.role === "MANAGER"
             ? "This is your own attendance, leave, and pay. Team is where you add and manage the people who report to you."
-            : showAttendance
-              ? "Track attendance, leave balance, payslips, and anything you have asked HR to handle."
-              : "Track leave balance, payslips, and anything you have asked HR to handle."
+            : user.role === "ACCOUNTANT"
+              ? "This is your own attendance, leave, and pay. Payroll is where you manage everyone else's payslips."
+              : showAttendance
+                ? "Track attendance, leave balance, payslips, and anything you have asked HR to handle."
+                : "Track leave balance, payslips, and anything you have asked HR to handle."
         }
-        action={user.role === "MANAGER" ? <Link className="text-sm font-semibold text-teal" href="/manager/team">Manage team</Link> : undefined}
+        action={
+          user.role === "MANAGER" ? (
+            <Link className="text-sm font-semibold text-teal" href="/manager/team">Manage team</Link>
+          ) : user.role === "ACCOUNTANT" ? (
+            <Link className="text-sm font-semibold text-teal" href="/accountant">Payroll</Link>
+          ) : undefined
+        }
       />
       <Workflow />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

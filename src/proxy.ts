@@ -14,7 +14,9 @@ export async function proxy(request: NextRequest) {
   const allowed = (role: SessionRole, path: string) =>
     role === "MANAGER"
       ? path.startsWith("/manager") || path.startsWith("/employee")
-      : path.startsWith(area(role));
+      : role === "ACCOUNTANT"
+        ? path.startsWith("/accountant") || path.startsWith("/employee")
+        : path.startsWith(area(role));
 
   if (!session && pathname !== "/") {
     return NextResponse.redirect(new URL("/", request.url));

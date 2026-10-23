@@ -85,7 +85,7 @@ export async function requireUser(role?: SessionRole) {
 }
 
 export function requireSelf() {
-  return requireRoles(["EMPLOYEE", "MANAGER"]);
+  return requireRoles(["EMPLOYEE", "MANAGER", "ACCOUNTANT"]);
 }
 
 export async function requireRoles(roles: SessionRole[]) {

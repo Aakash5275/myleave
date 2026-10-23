@@ -1,12 +1,12 @@
 import { ProfileForms } from "@/components/employee-forms";
 import { PageHeader, Panel } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireSelf } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const facts = [
     ["Employee ID", user.employeeCode],
     ["Email", user.email],

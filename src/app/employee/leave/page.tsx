@@ -2,7 +2,7 @@ import { CancelLeaveButton, LeaveApplyButton } from "@/components/employee-forms
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, inputClass, td, th } from "@/components/ui";
 import { LEAVE_TYPES, REQUEST_STATUSES } from "@/lib/constants";
-import { requireUser } from "@/lib/auth";
+import { requireSelf } from "@/lib/auth";
 import { formatDate, matchesQuery, queryValue, yearOf } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -13,7 +13,7 @@ export default async function LeavePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const params = await searchParams;
   const q = queryValue(params.q);
   const status = queryValue(params.status);

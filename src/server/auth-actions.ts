@@ -21,7 +21,8 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
     (await bcrypt.compare(password, user.passwordHash));
   if (!user || !valid) return { error: "Invalid email or password." };
 
-  const role: SessionRole = user.role === "ADMIN" || user.role === "MANAGER" ? user.role : "EMPLOYEE";
+  const role: SessionRole =
+    user.role === "ADMIN" || user.role === "MANAGER" || user.role === "ACCOUNTANT" ? user.role : "EMPLOYEE";
   const token = await signSession({
     id: user.id,
     role,

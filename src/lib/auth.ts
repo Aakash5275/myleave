@@ -60,7 +60,7 @@ export const getSessionUser = cache(async function getSessionUser() {
         WHERE n."userId" = u.id
           AND n.read = false
           AND (
-            u.role IN ('ADMIN', 'MANAGER')
+            u.role IN ('ADMIN', 'MANAGER', 'ACCOUNTANT')
             OR COALESCE(o."attendanceEnabled", true)
             OR n.kind <> 'attendance'
           )
@@ -79,6 +79,18 @@ export async function requireUser(role?: SessionRole) {
   const user = await getSessionUser();
   if (!user) redirect("/logout");
   if (role && user.role !== role) {
+    redirect(homeFor(user.role as SessionRole));
+  }
+  return user;
+}
+
+export function requireSelf() {
+  return requireRoles(["EMPLOYEE", "MANAGER"]);
+}
+
+export async function requireRoles(roles: SessionRole[]) {
+  const user = await requireUser();
+  if (!roles.includes(user.role as SessionRole)) {
     redirect(homeFor(user.role as SessionRole));
   }
   return user;

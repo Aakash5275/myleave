@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { PayslipForm } from "@/components/admin-forms";
+import { PayslipSheet } from "@/components/payslip-sheet";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, Panel, inputClass, td, th } from "@/components/ui";
+import { SAMPLE_PAYSLIP } from "@/lib/payslip-pdf";
+import { PAYABLE_ROLES } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { formatMoney, formatMonth, fullName, matchesQuery, monthKeys, queryValue } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -21,7 +24,7 @@ export default async function AdminPayrollPage({
   const range = month ? monthKeys(month) : null;
   const [employees, slips] = await Promise.all([
     prisma.user.findMany({
-      where: { role: "EMPLOYEE", status: "Active" },
+      where: { role: { in: [...PAYABLE_ROLES] }, status: "Active" },
       select: { id: true, firstName: true, lastName: true, employeeCode: true, salary: true },
       orderBy: { firstName: "asc" },
     }),
@@ -45,7 +48,14 @@ export default async function AdminPayrollPage({
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Pay" title="Payroll" description="Issue a payslip to notify the employee, or save a draft until the numbers are final." />
+      <PageHeader eyebrow="Pay" title="Payroll" description="Issue a payslip to notify the employee, or save a draft until the numbers are final. The sample below is the standard PDF every person downloads." />
+      <Panel
+        title="Standard payslip"
+        description="This sample is the layout employees get when they pick a month. The PDF is generated on download and is not stored."
+        action={<a className="text-sm font-semibold text-teal" href="/admin/payroll/file">Download sample PDF</a>}
+      >
+        <PayslipSheet employee={SAMPLE_PAYSLIP.employee} slip={SAMPLE_PAYSLIP.slip} />
+      </Panel>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
         <Panel className="min-w-0" title="New payslip">
           {employees.length ? (

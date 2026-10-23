@@ -43,8 +43,9 @@ model User {
   hrReviewed       HrRequest[]       @relation("HrReviewer")
   documentRequests DocumentRequest[] @relation("DocEmployee")
   docsReviewed     DocumentRequest[] @relation("DocReviewer")
-  announcements    Announcement[]
-  notifications    Notification[]
+  announcements     Announcement[]
+  notifications     Notification[]
+  payrollDocuments  PayrollDocument[]
 
   @@index([managerId])
 }
@@ -141,6 +142,20 @@ model Payslip {
 
   @@unique([userId, month, year])
   @@index([year, month])
+}
+
+model PayrollDocument {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadedById  String
+  fileName      String
+  mimeType      String
+  data          Bytes
+  extractedText String   @default("")
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
 }
 
 model HrRequest {

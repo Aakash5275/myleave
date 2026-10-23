@@ -10,7 +10,11 @@ export async function proxy(request: NextRequest) {
   const session = token ? await readSession(token) : null;
   const home = session ? homeFor(session.role) : "/";
   const area = (role: SessionRole) =>
-    role === "ADMIN" ? "/admin" : role === "MANAGER" ? "/manager" : "/employee";
+    role === "ADMIN" ? "/admin" : role === "MANAGER" ? "/manager" : role === "ACCOUNTANT" ? "/accountant" : "/employee";
+  const allowed = (role: SessionRole, path: string) =>
+    role === "MANAGER"
+      ? path.startsWith("/manager") || path.startsWith("/employee")
+      : path.startsWith(area(role));
 
   if (!session && pathname !== "/") {
     return NextResponse.redirect(new URL("/", request.url));
@@ -18,7 +22,7 @@ export async function proxy(request: NextRequest) {
   if (session && pathname === "/") {
     return NextResponse.redirect(new URL(home, request.url));
   }
-  if (session && ["/admin", "/manager", "/employee"].some((prefix) => pathname.startsWith(prefix) && prefix !== area(session.role))) {
+  if (session && ["/admin", "/manager", "/accountant", "/employee"].some((prefix) => pathname.startsWith(prefix)) && !allowed(session.role, pathname)) {
     return NextResponse.redirect(new URL(home, request.url));
   }
   return NextResponse.next();

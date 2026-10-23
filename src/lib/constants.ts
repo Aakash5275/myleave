@@ -21,7 +21,16 @@ export const LEAVE_ALLOWANCE: Record<(typeof LEAVE_TYPES)[number], number> = {
   Unpaid: 0,
 };
 
-export const ACCOUNT_ROLES = ["EMPLOYEE", "MANAGER"] as const;
+export const ACCOUNT_ROLES = ["EMPLOYEE", "MANAGER", "ACCOUNTANT"] as const;
+
+export const PAYABLE_ROLES = ["EMPLOYEE", "MANAGER", "ACCOUNTANT"] as const;
+
+export function roleLabel(role: string) {
+  if (role === "ADMIN") return "Admin";
+  if (role === "MANAGER") return "Manager";
+  if (role === "ACCOUNTANT") return "Accountant";
+  return "Employee";
+}
 
 export const REQUEST_STATUSES = [
   "Pending",

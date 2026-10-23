@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PayslipForm, PrintButton } from "@/components/admin-forms";
 import { PayslipSheet } from "@/components/payslip-sheet";
+import { PAYABLE_ROLES } from "@/lib/constants";
 import { requireUser } from "@/lib/auth";
 import { fullName } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +18,7 @@ export default async function AdminPayslipPage({ params }: { params: Promise<{ i
       include: { user: { select: { firstName: true, lastName: true, employeeCode: true, department: true, jobTitle: true } } },
     }),
     prisma.user.findMany({
-      where: { role: "EMPLOYEE" },
+      where: { role: { in: [...PAYABLE_ROLES] } },
       select: { id: true, firstName: true, lastName: true, employeeCode: true, salary: true },
       orderBy: { firstName: "asc" },
     }),

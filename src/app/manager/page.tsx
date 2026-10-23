@@ -26,7 +26,7 @@ export default async function ManagerHome() {
       <PageHeader
         eyebrow="Manager"
         title={`Hello, ${manager.firstName}`}
-        description="Add the people who report to you, keep their records current, and approve their attendance."
+        description="Manage the people who report to you, and use the same leave, attendance, pay, and profile tools as an employee."
       />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Your team" value={team.length} hint="Active employees" />

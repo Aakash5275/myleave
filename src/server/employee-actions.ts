@@ -1,7 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { requireUser } from "@/lib/auth";
+import { requireSelf } from "@/lib/auth";
 import {
   DOC_TYPES,
   HR_CATEGORIES,
@@ -45,7 +45,7 @@ async function requireAtWorkplace(location: unknown, remoteClock: boolean) {
 }
 
 export async function clock(kind: "in" | "out", location: unknown) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const policy = await prisma.orgSetting.findUnique({ where: { id: ORG_SETTING_ID } });
   if (policy?.attendanceEnabled === false) return { error: "Attendance is turned off." };
   const gate = await requireAtWorkplace(location, user.remoteClock || Boolean(policy?.clockAnywhere));
@@ -100,7 +100,7 @@ export async function clock(kind: "in" | "out", location: unknown) {
 }
 
 export async function applyLeave(formData: FormData) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const type = cleanText(formData.get("type"), 20);
   const start = cleanDate(formData.get("startDate"));
   const end = cleanDate(formData.get("endDate"));
@@ -159,7 +159,7 @@ export async function applyLeave(formData: FormData) {
 }
 
 export async function cancelLeave(id: string) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const leave = await prisma.leaveRequest.findFirst({
     where: { id, userId: user.id },
   });
@@ -186,7 +186,7 @@ export async function cancelLeave(id: string) {
 }
 
 export async function createHrRequest(formData: FormData) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const category = cleanText(formData.get("category"), 40);
   const priority = cleanText(formData.get("priority"), 20);
   const subject = cleanText(formData.get("subject"), 120);
@@ -211,7 +211,7 @@ export async function createHrRequest(formData: FormData) {
 }
 
 export async function createDocumentRequest(formData: FormData) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const docType = cleanText(formData.get("docType"), 80);
   const purpose = cleanMultiline(formData.get("purpose"), 500);
   const details = cleanMultiline(formData.get("details"), 1000);
@@ -232,7 +232,7 @@ export async function createDocumentRequest(formData: FormData) {
 }
 
 export async function updateProfile(formData: FormData) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const phone = cleanPhone(formData.get("phone"));
   const emergencyPhone = cleanPhone(formData.get("emergencyPhone"));
   const emergencyName = cleanText(formData.get("emergencyName"), 80);
@@ -253,7 +253,7 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function changePassword(formData: FormData) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("next") ?? "");
   const confirm = String(formData.get("confirm") ?? "");

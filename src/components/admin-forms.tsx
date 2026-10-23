@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionForm } from "@/components/action-form";
 import { Modal } from "@/components/modal";
@@ -10,6 +10,7 @@ import { formatMoney } from "@/lib/format";
 import { GpsLink } from "@/components/gps-link";
 import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/geo";
 import {
+  assignManager,
   createEmployee,
   deleteAnnouncement,
   markMissingAbsent,
@@ -60,18 +61,20 @@ function AccessFields({
   managerId?: string;
   managers: { id: string; name: string }[];
 }) {
-  const [account, setAccount] = useState(role === "MANAGER" ? "MANAGER" : "EMPLOYEE");
+  const [account, setAccount] = useState(role === "MANAGER" || role === "ACCOUNTANT" ? role : "EMPLOYEE");
+  const [lead, setLead] = useState(managerId);
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Field label="Access">
+      <Field label="Role">
         <select className={inputClass} name="role" value={account} onChange={(event) => setAccount(event.target.value)}>
           <option value="EMPLOYEE">Employee</option>
           <option value="MANAGER">Manager</option>
+          <option value="ACCOUNTANT">Accountant</option>
         </select>
       </Field>
       {account === "EMPLOYEE" ? (
-        <Field label="Reports to">
-          <select className={inputClass} name="managerId" defaultValue={managerId}>
+        <Field label="Manager">
+          <select className={inputClass} name="managerId" value={lead} onChange={(event) => setLead(event.target.value)}>
             <option value="">No manager</option>
             {managers.map((manager) => (
               <option key={manager.id} value={manager.id}>{manager.name}</option>
@@ -79,7 +82,11 @@ function AccessFields({
           </select>
         </Field>
       ) : (
-        <p className="self-end text-sm text-mist">A manager can add and approve attendance for their own team.</p>
+        <p className="self-end text-sm text-mist">
+          {account === "ACCOUNTANT"
+            ? "This person can see every employee, upload pay documents, and edit salaries and payslips."
+            : "This person can add employees and approve their attendance."}
+        </p>
       )}
     </div>
   );
@@ -89,19 +96,32 @@ export function CreateEmployeeButton({
   managers = [],
   action = createEmployee,
   showAccess = true,
+  fixedManager,
+  label = "Add employee",
 }: {
   managers?: { id: string; name: string }[];
   action?: typeof createEmployee;
   showAccess?: boolean;
+  fixedManager?: { id: string; name: string };
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button className={btnPrimary} type="button" onClick={() => setOpen(true)}>
-        Add employee
+        {label}
       </button>
-      <Modal open={open} title="Add employee" onClose={() => setOpen(false)}>
+      <Modal open={open} title={fixedManager ? `Add employee under ${fixedManager.name}` : "Add employee"} onClose={() => setOpen(false)}>
         <ActionForm action={action} submitLabel="Create account" resetOnSuccess onSuccess={() => setOpen(false)}>
+          {fixedManager ? (
+            <>
+              <input type="hidden" name="role" value="EMPLOYEE" />
+              <input type="hidden" name="managerId" value={fixedManager.id} />
+              <p className="text-sm text-mist">This employee will report to {fixedManager.name}.</p>
+            </>
+          ) : showAccess ? (
+            <AccessFields managers={managers} />
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="First name">
               <input className={inputClass} name="firstName" required />
@@ -133,10 +153,60 @@ export function CreateEmployeeButton({
           <Field label="Phone">
             <input className={inputClass} name="phone" />
           </Field>
-          {showAccess ? <AccessFields managers={managers} /> : null}
         </ActionForm>
       </Modal>
     </>
+  );
+}
+
+export function ManagerAssign({
+  employeeId,
+  managerId,
+  managers,
+}: {
+  employeeId: string;
+  managerId: string;
+  managers: { id: string; name: string }[];
+}) {
+  const [value, setValue] = useState(managerId);
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setValue(managerId);
+  }, [managerId]);
+
+  return (
+    <div>
+      <select
+        className={inputClass}
+        value={value}
+        disabled={pending}
+        aria-label="Manager"
+        onChange={(event) => {
+          const next = event.target.value;
+          const previous = value;
+          setValue(next);
+          setError("");
+          const data = new FormData();
+          data.set("id", employeeId);
+          data.set("managerId", next);
+          startTransition(async () => {
+            const result = await assignManager(data);
+            if ("error" in result && typeof result.error === "string") {
+              setValue(previous);
+              setError(result.error);
+            }
+          });
+        }}
+      >
+        <option value="">No manager</option>
+        {managers.map((manager) => (
+          <option key={manager.id} value={manager.id}>{manager.name}</option>
+        ))}
+      </select>
+      {error ? <p className="mt-1 text-xs text-rose-700">{error}</p> : null}
+    </div>
   );
 }
 
@@ -433,7 +503,7 @@ export function PayslipForm({
 
   return (
     <ActionForm className="@container space-y-3" action={savePayslip} submitLabel="Issue payslip" secondary={<button className={btnSecondary} name="intent" value="draft" type="submit">Save draft</button>}>
-      {payslip ? <input type="hidden" name="id" value={payslip.id} /> : null}
+      {payslip?.id ? <input type="hidden" name="id" value={payslip.id} /> : null}
       <Field label="Employee" className="min-w-0!">
         <select
           className={inputClass}
@@ -442,7 +512,7 @@ export function PayslipForm({
           onChange={(event) => {
             const next = event.target.value;
             setUserId(next);
-            if (!payslip) {
+            if (!payslip?.id && payslip?.basic === undefined) {
               const person = employees.find((employee) => employee.id === next);
               if (person) setBasic(person.salary);
             }

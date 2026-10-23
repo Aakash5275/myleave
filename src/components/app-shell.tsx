@@ -25,7 +25,7 @@ import { logout } from "@/server/auth-actions";
 type ShellUser = {
   name: string;
   email: string;
-  role: "ADMIN" | "MANAGER" | "EMPLOYEE";
+  role: "ADMIN" | "MANAGER" | "EMPLOYEE" | "ACCOUNTANT";
   title: string;
   department: string;
   code: string;
@@ -47,8 +47,24 @@ const employeeLinks = [
 const managerLinks = [
   { href: "/manager", label: "Dashboard", icon: LayoutDashboard },
   { href: "/manager/team", label: "Team", icon: Users },
-  { href: "/manager/attendance", label: "Attendance", icon: Clock3 },
-  { href: "/manager/notifications", label: "Notifications", icon: Bell },
+  { href: "/manager/attendance", label: "Team attendance", icon: Clock3 },
+  { href: "/employee", label: "My dashboard", icon: LayoutDashboard },
+  { href: "/employee/profile", label: "Profile", icon: UserRound },
+  { href: "/employee/attendance", label: "My attendance", icon: Clock3 },
+  { href: "/employee/leave", label: "Leave", icon: CalendarRange },
+  { href: "/employee/payroll", label: "Payslips", icon: Receipt },
+  { href: "/employee/requests", label: "HR requests", icon: MessagesSquare },
+  { href: "/employee/documents", label: "Documents", icon: FolderOpen },
+  { href: "/employee/history", label: "History", icon: History },
+  { href: "/employee/notifications", label: "Notifications", icon: Bell },
+];
+
+const accountantLinks = [
+  { href: "/accountant", label: "Payroll", icon: LayoutDashboard },
+  { href: "/accountant/employees", label: "Employees", icon: Users },
+  { href: "/accountant/payroll", label: "Payslips", icon: Receipt },
+  { href: "/accountant/reports", label: "Pay report", icon: BarChart3 },
+  { href: "/accountant/notifications", label: "Notifications", icon: Bell },
 ];
 
 const adminLinks = [
@@ -65,7 +81,7 @@ const adminLinks = [
 ];
 
 function isActive(href: string, pathname: string) {
-  if (href === "/employee" || href === "/admin") return pathname === href;
+  if (href === "/employee" || href === "/admin" || href === "/accountant" || href === "/manager") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -83,11 +99,11 @@ export function AppShell({
   const pathname = usePathname();
   const [openPath, setOpenPath] = useState<string | null>(null);
   const open = openPath === pathname;
-  const links = (user.role === "ADMIN" ? adminLinks : user.role === "MANAGER" ? managerLinks : employeeLinks).filter(
+  const links = (user.role === "ADMIN" ? adminLinks : user.role === "MANAGER" ? managerLinks : user.role === "ACCOUNTANT" ? accountantLinks : employeeLinks).filter(
     (link) => showAttendance || link.href !== "/employee/attendance",
   );
-  const home = user.role === "ADMIN" ? "/admin" : user.role === "MANAGER" ? "/manager" : "/employee";
-  const roleLabel = user.role === "ADMIN" ? "Admin" : user.role === "MANAGER" ? "Manager" : "Employee";
+  const home = user.role === "ADMIN" ? "/admin" : user.role === "MANAGER" ? "/manager" : user.role === "ACCOUNTANT" ? "/accountant" : "/employee";
+  const roleLabel = user.role === "ADMIN" ? "Admin" : user.role === "MANAGER" ? "Manager" : user.role === "ACCOUNTANT" ? "Accountant" : "Employee";
 
   return (
     <div className="min-h-screen bg-sand text-ink">

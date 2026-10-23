@@ -2,9 +2,10 @@
 
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
-import { requireUser } from "@/lib/auth";
+import { requireRoles, requireUser } from "@/lib/auth";
 import {
   ACCOUNT_ROLES,
+  PAYABLE_ROLES,
   ATTENDANCE_STATUSES,
   EMPLOYEE_STATUSES,
   REQUEST_STATUSES,
@@ -48,6 +49,21 @@ async function reportsTo(role: string, raw: FormDataEntryValue | null, selfId?: 
   });
   if (!manager) return { error: "Choose an active manager." };
   return manager.id;
+}
+
+export async function assignManager(formData: FormData) {
+  await requireUser("ADMIN");
+  const id = cleanText(formData.get("id"), 40);
+  const employee = await prisma.user.findFirst({
+    where: { id, role: "EMPLOYEE" },
+    select: { id: true },
+  });
+  if (!employee) return { error: "Choose an employee from the list." };
+  const managerId = await reportsTo("EMPLOYEE", formData.get("managerId"), id);
+  if (typeof managerId !== "string" && managerId !== null) return managerId;
+  await prisma.user.update({ where: { id }, data: { managerId } });
+  refresh();
+  return {};
 }
 
 export async function createEmployee(formData: FormData) {
@@ -103,9 +119,11 @@ export async function createEmployee(formData: FormData) {
       title: "Welcome to MyLeave",
       message: role === "MANAGER"
         ? "Your manager account is ready. Sign in with the password shared by your admin."
-        : "Your HR profile is ready. Sign in with the password shared by your admin.",
+        : role === "ACCOUNTANT"
+          ? "Your accountant account is ready. Sign in with the password shared by your admin."
+          : "Your HR profile is ready. Sign in with the password shared by your admin.",
       kind: "account",
-      href: role === "MANAGER" ? "/manager" : "/employee/profile",
+      href: role === "MANAGER" ? "/manager" : role === "ACCOUNTANT" ? "/accountant" : "/employee/profile",
     });
   } catch (error) {
     return { error: duplicateMessage(error, "Could not create the employee.") };
@@ -131,7 +149,7 @@ export async function updateEmployee(formData: FormData) {
   const status = cleanText(formData.get("status"), 20);
   const remoteClock = formData.get("remoteClock") === "on";
   const salary = parseAmount(formData.get("salary"));
-  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER"] } } });
+  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER", "ACCOUNTANT"] } } });
   if (!employee) return { error: "Employee not found." };
   if (!department) return { error: "Choose a department, or type one." };
   const role = cleanText(formData.get("role"), 20);
@@ -176,7 +194,7 @@ export async function updateEmployee(formData: FormData) {
         managerId,
       },
     });
-    if (employee.role === "MANAGER" && role === "EMPLOYEE") {
+    if (employee.role === "MANAGER" && role !== "MANAGER") {
       await prisma.user.updateMany({ where: { managerId: id }, data: { managerId: null } });
     }
   } catch (error) {
@@ -192,7 +210,7 @@ export async function resetEmployeePassword(formData: FormData) {
   const id = cleanText(formData.get("id"), 40);
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
-  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER"] } } });
+  const employee = await prisma.user.findFirst({ where: { id, role: { in: ["EMPLOYEE", "MANAGER", "ACCOUNTANT"] } } });
   if (!employee) return { error: "Employee not found." };
   if (!validPassword(password)) {
     return { error: "Use 8–72 characters with at least one letter and one number." };
@@ -206,7 +224,7 @@ export async function resetEmployeePassword(formData: FormData) {
     title: "Password reset",
     message: "An admin reset your password. Use the new temporary password to sign in.",
     kind: "account",
-    href: employee.role === "MANAGER" ? "/manager" : "/employee/profile",
+    href: employee.role === "MANAGER" ? "/manager" : employee.role === "ACCOUNTANT" ? "/accountant" : "/employee/profile",
   });
   refresh();
   return {};
@@ -437,7 +455,7 @@ export async function reviewDocument(formData: FormData) {
 }
 
 export async function savePayslip(formData: FormData) {
-  await requireUser("ADMIN");
+  await requireRoles(["ADMIN", "ACCOUNTANT"]);
   const id = cleanText(formData.get("id"), 40);
   const userId = cleanText(formData.get("userId"), 40);
   const month = Number(formData.get("month"));
@@ -464,7 +482,7 @@ export async function savePayslip(formData: FormData) {
   }
   const netPay = basic + allowances + overtime - deductions - tax;
   if (netPay < 0) return { error: "Net pay cannot be negative. Check deductions and tax." };
-  const employee = await prisma.user.findFirst({ where: { id: userId, role: "EMPLOYEE" } });
+  const employee = await prisma.user.findFirst({ where: { id: userId, role: { in: [...PAYABLE_ROLES] } } });
   if (!employee) return { error: "Choose an employee." };
 
   const status = intent === "draft" ? "Draft" : "Issued";

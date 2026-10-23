@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { Empty, Field, FilterBar, PageHeader, inputClass } from "@/components/ui";
 import { LEAVE_TYPES, REQUEST_STATUSES } from "@/lib/constants";
-import { requireUser } from "@/lib/auth";
+import { requireSelf } from "@/lib/auth";
 import { formatDate, formatDateTime, matchesQuery, queryValue } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -13,7 +13,7 @@ export default async function HistoryPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser("EMPLOYEE");
+  const user = await requireSelf();
   const params = await searchParams;
   const q = queryValue(params.q);
   const status = queryValue(params.status);

@@ -2,11 +2,12 @@ import { SignJWT, jwtVerify } from "jose";
 
 export const COOKIE = "myleave_session";
 
-export type SessionRole = "ADMIN" | "MANAGER" | "EMPLOYEE";
+export type SessionRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "ACCOUNTANT";
 
 export function homeFor(role: SessionRole) {
   if (role === "ADMIN") return "/admin";
   if (role === "MANAGER") return "/manager";
+  if (role === "ACCOUNTANT") return "/accountant";
   return "/employee";
 }
 
@@ -52,7 +53,7 @@ export async function readSession(token: string): Promise<SessionPayload | null>
     const { payload } = await jwtVerify(token, secret());
     const role = payload.role;
     const email = payload.email;
-    if ((role !== "ADMIN" && role !== "MANAGER" && role !== "EMPLOYEE") || !payload.sub || typeof email !== "string") {
+    if ((role !== "ADMIN" && role !== "MANAGER" && role !== "EMPLOYEE" && role !== "ACCOUNTANT") || !payload.sub || typeof email !== "string") {
       return null;
     }
     return { sub: payload.sub, role, email };

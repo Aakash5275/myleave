@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AttendanceClock } from "@/components/employee-forms";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader, Panel, Stat, Workflow } from "@/components/ui";
-import { getSessionClaims, requireUser } from "@/lib/auth";
+import { getSessionClaims, requireSelf } from "@/lib/auth";
 import { formatDate, formatMoney, formatMonth, fullName, monthKeys, todayKey } from "@/lib/format";
 import { loadEmployeeHome } from "@/server/home";
 
@@ -14,8 +14,8 @@ export default async function EmployeeDashboard() {
   const month = monthKeys(today.slice(0, 7))!;
   const year = Number(today.slice(0, 4));
   const [user, home] = await Promise.all([
-    requireUser("EMPLOYEE"),
-    claims?.role === "EMPLOYEE"
+    requireSelf(),
+    claims?.role === "EMPLOYEE" || claims?.role === "MANAGER"
       ? loadEmployeeHome(claims.sub, today, year, month.start, month.end)
       : Promise.resolve(null),
   ]);
@@ -29,13 +29,16 @@ export default async function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Employee"
+        eyebrow={user.role === "MANAGER" ? "Manager" : "Employee"}
         title={`Good to see you, ${user.firstName}`}
         description={
-          showAttendance
-            ? "Track attendance, leave balance, payslips, and anything you have asked HR to handle."
-            : "Track leave balance, payslips, and anything you have asked HR to handle."
+          user.role === "MANAGER"
+            ? "This is your own attendance, leave, and pay. Team is where you add and manage the people who report to you."
+            : showAttendance
+              ? "Track attendance, leave balance, payslips, and anything you have asked HR to handle."
+              : "Track leave balance, payslips, and anything you have asked HR to handle."
         }
+        action={user.role === "MANAGER" ? <Link className="text-sm font-semibold text-teal" href="/manager/team">Manage team</Link> : undefined}
       />
       <Workflow />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
